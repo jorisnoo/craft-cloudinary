@@ -74,6 +74,10 @@ class NotificationsController extends Controller
                 return $this->_processDelete($volumeId, $baseFolder);
             case 'rename':
                 return $this->_processRename($volumeId, $baseFolder, $hasDynamicFolders);
+            case 'move':
+                return $this->_processMoveAsset($volumeId, $baseFolder, $hasDynamicFolders);
+            case 'move_or_rename_asset_folder':
+                return $this->_processMoveAssetFolder($volumeId, $baseFolder);
             default:
                 return $this->asSuccess();
         }
@@ -105,7 +109,6 @@ class NotificationsController extends Controller
         }
 
         // Get parent folder ID
-        // If the path is identical to the folder name, the folder is being created in the base folder
         $parentId = (new Query())
             ->select('id')
             ->from(Table::VOLUMEFOLDERS)
@@ -114,6 +117,8 @@ class NotificationsController extends Controller
                 'path' => ($name === $path) ? NULL : dirname($path) . '/',
             ])
             ->scalar();
+
+        // TODO: do we need to create a non-existent parent folder?
 
         // Store folder
         $record = new VolumeFolderRecord([
@@ -174,6 +179,8 @@ class NotificationsController extends Controller
                 'path' => $folder === '' ? NULL : $folder . '/',
             ])
             ->scalar();
+
+        // TODO: do we need to create a non-existent folder?
 
         // Check if asset exists
         $filename = basename($publicId);
@@ -267,7 +274,7 @@ class NotificationsController extends Controller
         return $this->asSuccess();
     }
 
-    private function _processRename($volumeId, $baseFolder, bool $hasDynamicFolders = false): Response
+    private function _processRename($volumeId, $baseFolder, bool $hasDynamicFolders): Response
     {
         $resourceType = $this->request->getRequiredBodyParam('resource_type');
         $fromPublicId = $this->request->getRequiredBodyParam('from_public_id');
@@ -320,6 +327,8 @@ class NotificationsController extends Controller
                     'path' => $toFolderPath === '' ? NULL : $toFolderPath,
                 ]);
 
+                // TODO: do we need to create a non-existent folder?
+
                 $asset->folderId = $folderRecord->id;
             }
 
@@ -333,6 +342,140 @@ class NotificationsController extends Controller
             }
 
             Craft::$app->getElements()->saveElement($asset);
+        }
+
+        return $this->asSuccess();
+    }
+
+    private function _processMoveAsset($volumeId, $baseFolder, bool $hasDynamicFolders): Response
+    {
+        $resources = $this->request->getRequiredBodyParam('resources');
+
+        // Loop through all moved resources
+        foreach ($resources as $resource) {
+            $resourceType = $resource['resource_type'];
+            // We only get the display_name and the asset_id
+            // Could the display_name be different in Craft or is it the filename?
+            $filename = $resource['display_name'];
+            $fromFolder = $hasDynamicFolders ? $resource['from_asset_folder'] : $resource['from_folder'];
+            $toFolder = $hasDynamicFolders ? $resource['to_asset_folder'] : $resource['to_folder'];
+
+            if (!empty($baseFolder)) {
+                // If the assets are being moved outside the base folder
+                if (
+                    $fromFolder !== $baseFolder && !str_starts_with($fromFolder, $baseFolder . '/')
+                    && $toFolder !== $baseFolder && !str_starts_with($toFolder, $baseFolder . '/')
+                ) {
+                    return $this->asSuccess();
+                }
+
+                // TODO: Handle the case where assets are being moved out of the base folder -> delete them in Craft
+                // TODO: Handle the case where assets are being moved into the base folder -> add them to Craft
+
+                // Lastly, if the asset is being moved within the base folder
+                $fromFolder = substr($fromFolder, strlen($baseFolder) + 1);
+                $toFolder = substr($toFolder, strlen($baseFolder) + 1);
+            }
+
+            $assetQuery = Asset::find()
+                ->volumeId($volumeId)
+                ->folderPath($fromFolder);
+
+            if ($resourceType === 'raw') {
+                $assetQuery->filename($filename);
+            } else {
+                $assetQuery->filename("$filename.*");
+                if ($resourceType === 'image') {
+                    $assetQuery->kind('image');
+                } else {
+                    $assetQuery->kind(['video', 'audio']);
+                }
+            }
+
+            $asset = $assetQuery->one();
+
+            if ($asset !== null) {
+                $targetFolder = VolumeFolderRecord::findOne([
+                    'volumeId' => $volumeId,
+                    'path' => $toFolder === '' ? null : $toFolder . '/',
+                ]);
+
+                // TODO: do we need to create a non-existent folder?
+                if ($targetFolder !== null) {
+                    $asset->folderId = $targetFolder->id;
+
+                    Craft::$app->getElements()->saveElement($asset);
+                }
+            }
+        }
+
+        return $this->asSuccess();
+    }
+
+    private function _processMoveAssetFolder($volumeId, $baseFolder): Response
+    {
+        $fromPath = $this->request->getRequiredBodyParam('from_path');
+        $toPath = $this->request->getRequiredBodyParam('to_path');
+
+        if (!empty($baseFolder)) {
+            // If the folder is being moved outside the base folder
+            if (
+                $fromPath !== $baseFolder && !str_starts_with($fromPath, $baseFolder . '/')
+                && $toPath !== $baseFolder && !str_starts_with($toPath, $baseFolder . '/')
+            ) {
+                return $this->asSuccess();
+            }
+
+            // TODO: Handle the case where the folder being moved out of the base folder -> delete them in Craft?
+            // TODO: Handle the case where the folder being moved into the base folder -> add them to Craft?
+
+            // Lastly, if the folder is being moved within the base folder
+            $fromPath = substr($fromPath, strlen($baseFolder) + 1);
+            $toPath = substr($toPath, strlen($baseFolder) + 1);
+        }
+
+        // Get the folder being moved or renamed
+        $folder = VolumeFolderRecord::findOne([
+            'volumeId' => $volumeId,
+            'path' => $fromPath === '' ? null : $fromPath . '/',
+        ]);
+
+        // TODO: Handle missing folder
+
+        // Check if folder exists
+        $existingFolderQuery = (new Query())
+            ->from([Table::VOLUMEFOLDERS])
+            ->where([
+                'volumeId' => $volumeId,
+                'path' => $toPath === '' ? null : $toPath . '/',
+            ]);
+
+        // TODO: If the target folder already exists, do we delete the original folder?
+        // Should any assets be moved?
+        if ($existingFolderQuery->exists()) {
+            return $this->asSuccess();
+        }
+
+        $targetParentFolder = dirname($toPath);
+        $targetFolderName = basename($toPath);
+
+        // Get parent folder ID of the target location
+        $parentId = (new Query())
+            ->select('id')
+            ->from(Table::VOLUMEFOLDERS)
+            ->where([
+                'volumeId' => $volumeId,
+                'path' => $targetParentFolder === '' ? null : $targetParentFolder . '/',
+            ])
+            ->scalar();
+
+        // TODO: What happens if the target folder does not exist, create it (recursively)?
+
+        if($folder) {
+            $folder->parentId = $parentId;
+            $folder->name = $targetFolderName;
+            $folder->path = $toPath . '/';
+            $folder->save();
         }
 
         return $this->asSuccess();
