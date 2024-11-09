@@ -73,6 +73,10 @@ class NotificationsController extends Controller
                 return $this->_processDelete($volumeId, $baseFolder);
             case 'rename':
                 return $this->_processRename($volumeId, $baseFolder);
+            case 'move':
+                return $this->_processMoveAsset($volumeId, $baseFolder);
+            case 'move_or_rename_asset_folder':
+                return $this->_processMoveAssetFolder($volumeId, $baseFolder);
             default:
                 return $this->asSuccess();
         }
@@ -98,11 +102,11 @@ class NotificationsController extends Controller
                 'volumeId' => $volumeId,
                 'path' => $path . '/',
             ]);
-        
+
         if ($existingFolderQuery->exists()) {
             return $this->asSuccess();
         }
-       
+
         // Get parent folder ID
         $parentId = (new Query())
             ->select('id')
@@ -174,7 +178,7 @@ class NotificationsController extends Controller
         $filename = basename($publicId);
 
         $resourceType = $this->request->getRequiredBodyParam('resource_type');
-        
+
         if ($resourceType !== 'raw') {
             $format = $this->request->getRequiredBodyParam('format');
 
@@ -210,7 +214,7 @@ class NotificationsController extends Controller
             $asset->width = $this->request->getRequiredBodyParam('width');
             $asset->height = $this->request->getRequiredBodyParam('height');
         }
-        
+
         $asset->setScenario(Asset::SCENARIO_INDEX);
         Craft::$app->getElements()->saveElement($asset);
 
@@ -230,7 +234,7 @@ class NotificationsController extends Controller
                 if ($folder !== $baseFolder && !str_starts_with($folder, $baseFolder . '/')) {
                     return $this->asSuccess();
                 }
-    
+
                 $folder = substr($folder, strlen($baseFolder) + 1);
             }
 
@@ -240,7 +244,7 @@ class NotificationsController extends Controller
             $assetQuery = Asset::find()
                 ->volumeId($volumeId)
                 ->folderPath($folderPath);
-            
+
             if ($resourceType === 'raw') {
                 $assetQuery->filename($filename);
             } else {
@@ -253,7 +257,7 @@ class NotificationsController extends Controller
             }
 
             $asset = $assetQuery->one();
-                
+
             if ($asset !== null) {
                 Craft::$app->getElements()->deleteElement($asset);
             }
@@ -268,7 +272,7 @@ class NotificationsController extends Controller
         $fromPublicId = $this->request->getRequiredBodyParam('from_public_id');
         $toPublicId = $this->request->getRequiredBodyParam('to_public_id');
         $folder = $this->request->getRequiredBodyParam('folder');
-        
+
         $fromFilename = basename($fromPublicId);
         $fromFolder = dirname($fromPublicId);
         $fromFolderPath = $fromFolder === '.' ? '' : $fromFolder . '/';
@@ -291,7 +295,7 @@ class NotificationsController extends Controller
         $assetQuery = Asset::find()
             ->volumeId($volumeId)
             ->folderPath($fromFolderPath);
-        
+
         if ($resourceType === 'raw') {
             $assetQuery->filename($fromFilename);
         } else {
@@ -328,5 +332,15 @@ class NotificationsController extends Controller
         }
 
         return $this->asSuccess();
+    }
+
+    private function _processMoveAsset($volumeId, $baseFolder): Response
+    {
+
+    }
+
+    private function _processMoveAssetFolder($volumeId, $baseFolder): Response
+    {
+
     }
 }
