@@ -26,8 +26,9 @@ class NotificationsController extends Controller
 {
     public $enableCsrfValidation = false;
 
-    protected array|bool|int $allowAnonymous = ['process'];
+    protected array|bool|int $allowAnonymous = true;
 
+    // /actions/_cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
         $this->requirePostRequest();
@@ -35,8 +36,7 @@ class NotificationsController extends Controller
         $volumeId = $this->request->getRequiredQueryParam('volume');
         $notificationType = $this->request->getRequiredBodyParam('notification_type');
 
-        $this->verifyVolume($volumeId);
-        $this->verifySignature();
+        $this->verifyRequest($volumeId);
 
         Cloudinary::log("Webhook received for type $notificationType");
         Cloudinary::log($this->request->getBodyParams());
@@ -103,7 +103,7 @@ class NotificationsController extends Controller
         return $this->asSuccess();
     }
 
-    protected function verifyVolume($volumeId): void
+    protected function verifyRequest($volumeId)
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 
@@ -116,9 +116,11 @@ class NotificationsController extends Controller
         if (!$fs instanceof CloudinaryFs) {
             throw new BadRequestHttpException('Invalid volume');
         }
+
+        $this->verifySignature($fs);
     }
 
-    protected function verifySignature(): void
+    protected function verifySignature($fs): void
     {
         // Verify signature
         Configuration::instance()->cloud->apiSecret = App::parseEnv($fs->apiSecret);

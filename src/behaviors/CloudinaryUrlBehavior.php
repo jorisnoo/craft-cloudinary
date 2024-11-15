@@ -73,6 +73,7 @@ class CloudinaryUrlBehavior extends Behavior
         $fsWithConfig = $hasCloudinaryFs ? $fs : $transformFs;
 
         $publicId = $hasCloudinaryFs ? $asset->getPath() : $asset->getUrl();
+        $publicId = basename($publicId);
         $resourceType = $this->_getResourceType();
 
         /**
