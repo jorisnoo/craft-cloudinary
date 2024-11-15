@@ -73,7 +73,10 @@ class CloudinaryUrlBehavior extends Behavior
         $fsWithConfig = $hasCloudinaryFs ? $fs : $transformFs;
 
         $publicId = $hasCloudinaryFs ? $asset->getPath() : $asset->getUrl();
+
+        // public ids should never contain the path -> dynamic folder mode
         $publicId = basename($publicId);
+
         $resourceType = $this->_getResourceType();
 
         /**
@@ -100,6 +103,7 @@ class CloudinaryUrlBehavior extends Behavior
     private function _getResourceType(): string
     {
         $mimeType = $this->owner->getMimeType();
+
 
         if ($mimeType === null) {
             return AssetType::RAW;

@@ -2,12 +2,9 @@
 
 namespace jorisnoo\craftcloudinary\controllers;
 
-use Cloudinary\Configuration\Configuration;
-use Cloudinary\Utils\SignatureVerifier;
 use Craft;
 use craft\helpers\App;
 use craft\web\Controller;
-use InvalidArgumentException;
 use jorisnoo\craftcloudinary\actions\FolderDeleteAction;
 use jorisnoo\craftcloudinary\actions\AssetUploadAction;
 use jorisnoo\craftcloudinary\actions\FolderRenameAction;
@@ -31,15 +28,17 @@ class NotificationsController extends Controller
     // /actions/_cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
-        $this->requirePostRequest();
+        if (!$this->request->getIsPost()) {
+            return $this->asSuccess();
+        }
 
         $volumeId = $this->request->getRequiredQueryParam('volume');
         $notificationType = $this->request->getRequiredBodyParam('notification_type');
 
-        $this->verifyRequest($volumeId);
+        $fs = $this->verifyVolume($volumeId);
+        $this->verifyCloudinarySignature($fs);
 
         Cloudinary::log("Webhook received for type $notificationType");
-        Cloudinary::log($this->request->getBodyParams());
 
         match ($notificationType) {
 
@@ -97,13 +96,10 @@ class NotificationsController extends Controller
             default => null,
         };
 
-        // Clear the asset index cache
-        Craft::$app->getAssets()->clearAssetIndexCache();
-
         return $this->asSuccess();
     }
 
-    protected function verifyRequest($volumeId)
+    protected function verifyVolume($volumeId): CloudinaryFs
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 
@@ -117,24 +113,20 @@ class NotificationsController extends Controller
             throw new BadRequestHttpException('Invalid volume');
         }
 
-        $this->verifySignature($fs);
+        return $fs;
     }
 
-    protected function verifySignature($fs): void
+    protected function verifyCloudinarySignature(CloudinaryFs $fs): void
     {
         // Verify signature
-        Configuration::instance()->cloud->apiSecret = App::parseEnv($fs->apiSecret);
-
+        $apiSecret = App::parseEnv($fs->apiSecret);
         $body = $this->request->getRawBody();
         $timestamp = $this->request->getHeaders()->get('X-Cld-Timestamp');
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
+        $signedPayload = $body . $timestamp;
 
-        try {
-            if (SignatureVerifier::verifyNotificationSignature($body, $timestamp, $signature) === false) {
-                throw new BadRequestHttpException('Invalid signature');
-            }
-        } catch (InvalidArgumentException $error) {
-            throw new BadRequestHttpException($error->getMessage(), 0, $error);
+        if (sha1($signedPayload . $apiSecret) !== $signature) {
+            throw new BadRequestHttpException('Invalid signature');
         }
     }
 }

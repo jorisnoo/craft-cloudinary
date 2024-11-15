@@ -37,14 +37,14 @@ abstract class BaseCloudinaryAction
         return $filename;
     }
 
-    public function queryAsset(string $publicId, string $path, string $resourceType)
+    public function queryAsset(string $publicId, ?string $path, string $resourceType)
     {
         $filename = $this->formatFilename($publicId, $resourceType);
 
         $assetQuery = Asset::find()
             ->volumeId($this->volumeId)
             ->filename($filename)
-            ->folderPath($path);
+            ->folderPath($path ?? '');
 
         if ($resourceType === AssetType::IMAGE) {
             $assetQuery->kind('image');

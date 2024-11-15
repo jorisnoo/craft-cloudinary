@@ -10,31 +10,45 @@ class FolderRenameAction extends BaseCloudinaryAction
      * @param ?string $fromPath
      * @param ?string $toPath
      */
-    public function rename(?string $fromPath, ?string $toPath): void
+    public function rename(?string $fromPath, ?string $toPath)
     {
         $fromPath = $this->formatPath($fromPath);
         $toPath = $this->formatPath($toPath);
 
-        $folder = VolumeFolder::findOne([
+        $existingTargetFolder = VolumeFolder::findOne([
+            'volumeId' => $this->volumeId,
+            'path' => $toPath,
+        ]);
+
+        $oldFolder = VolumeFolder::findOne([
             'volumeId' => $this->volumeId,
             'path' => $fromPath,
         ]);
 
-        // If the folder exists, move it
-        if ($folder) {
+        if ($existingTargetFolder && $oldFolder) {
+            // If both a "from" and a "to" path already exists,
+            // delete the target and rename the "from" to the new destination (below)
+            $existingTargetFolder->delete();
+        } elseif ($existingTargetFolder && !$oldFolder) {
+            // If only the target already exists but no "from" folder, don't do anything
+            return $existingTargetFolder;
+        }
+
+        // If the "from" folder exists, but no target folder, move the existing one
+        if ($oldFolder) {
             // Get the parent folder by passing the dirname of the new folder destination
             $newParentFolder = (new FolderCreateAction($this->volumeId))
                 ->firstOrCreate(dirname($toPath));
 
-            $folder->path = $toPath;
-            $folder->name = basename($toPath);
-            $folder->parentId = $newParentFolder->id;
-            $folder->save();
+            $oldFolder->path = $toPath;
+            $oldFolder->name = basename($toPath);
+            $oldFolder->parentId = $newParentFolder->id;
+            $oldFolder->save();
 
-            return;
+            return $oldFolder;
         }
 
         // If it doesn't, create it
-        (new FolderCreateAction($this->volumeId))->firstOrCreate($toPath);
+        return (new FolderCreateAction($this->volumeId))->firstOrCreate($toPath);
     }
 }
