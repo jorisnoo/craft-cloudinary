@@ -2,7 +2,6 @@
     "name": "jorisnoo/craft-cloudinary",
     "description": "Cloudinary integration for Craft CMS.",
     "type": "craft-plugin",
-    "version": "1.7.2",
     "license": "MIT",
     "require": {
         "php": ">=8.0.2",
