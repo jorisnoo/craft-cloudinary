@@ -128,5 +128,11 @@ class NotificationsController extends Controller
         if (sha1($signedPayload . $apiSecret) !== $signature) {
             throw new BadRequestHttpException('Invalid signature');
         }
+
+        //To prevent against timing attacks, we compare the expected signature to each of the received signatures.
+        if ($timestamp <= strtotime('-2 hours')) {
+            //Signatures match, but older than 2 hours
+            throw new BadRequestHttpException('Expired signature');
+        }
     }
 }
