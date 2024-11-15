@@ -1,22 +1,15 @@
 {
-    "name": "thomasvantuycom/craft-cloudinary",
+    "name": "jorisnoo/craft-cloudinary",
     "description": "Cloudinary integration for Craft CMS.",
     "type": "craft-plugin",
     "version": "1.7.2",
     "license": "MIT",
-    "support": {
-        "email": "thomasvantuycom@protonmail.com",
-        "issues": "https://github.com/thomasvantuycom/craft-cloudinary/issues?state=open",
-        "source": "https://github.com/thomasvantuycom/craft-cloudinary",
-        "docs": "https://github.com/thomasvantuycom/craft-cloudinary",
-        "rss": "https://github.com/thomasvantuycom/craft-cloudinary/releases.atom"
-    },
     "require": {
         "php": ">=8.0.2",
-        "cloudinary/cloudinary_php": "^2.11.0",
-        "craftcms/cms": "^4.4.0",
-        "craftcms/flysystem": "^1.0.0",
-        "thomasvantuycom/flysystem-cloudinary": "^1.0.4"
+        "cloudinary/cloudinary_php": "^2.14.0",
+        "craftcms/cms": "^4.13.0",
+        "thomasvantuycom/flysystem-cloudinary": "dev-fix/silently-fail-deleting-inexistent",
+        "craftcms/flysystem": "^1.0.2"
     },
     "require-dev": {
         "craftcms/ecs": "dev-main",
@@ -24,14 +17,15 @@
     },
     "autoload": {
         "psr-4": {
-            "thomasvantuycom\\craftcloudinary\\": "src/"
+            "jorisnoo\\craftcloudinary\\": "src/"
         }
     },
     "extra": {
-        "handle": "cloudinary",
+        "handle": "_cloudinary",
         "name": "Cloudinary",
         "developer": "Thomas Vantuycom",
-        "documentationUrl": "https://github.com/thomasvantuycom/craft-cloudinary"
+        "documentationUrl": "https://github.com/thomasvantuycom/craft-cloudinary",
+        "class": "jorisnoo\\craftcloudinary\\Cloudinary"
     },
     "scripts": {
         "check-cs": "ecs check --ansi",
@@ -41,11 +35,19 @@
     "config": {
         "sort-packages": true,
         "platform": {
-            "php": "8.0.2"
+            "php": "8.3"
         },
         "allow-plugins": {
             "yiisoft/yii2-composer": true,
             "craftcms/plugin-installer": true
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:jorisnoo/flysystem-cloudinary.git"
+        }
+    ]
 }

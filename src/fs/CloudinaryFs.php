@@ -1,11 +1,12 @@
 <?php
 
-namespace thomasvantuycom\craftcloudinary\fs;
+namespace jorisnoo\craftcloudinary\fs;
 
 use Cloudinary\Cloudinary;
 use Craft;
 use craft\flysystem\base\FlysystemFs;
 use craft\helpers\App;
+use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemAdapter;
 use ThomasVantuycom\FlysystemCloudinary\CloudinaryAdapter;
 
@@ -17,22 +18,9 @@ class CloudinaryFs extends FlysystemFs
 
     public string $apiSecret = '';
 
-    public string $baseFolder = '';
-
-    public bool $dynamicFolders = false;
-
-    protected bool $foldersHaveTrailingSlashes = false;
-
     public static function displayName(): string
     {
-        return Craft::t('cloudinary', 'Cloudinary');
-    }
-
-    public function attributeLabels(): array
-    {
-        return array_merge(parent::attributeLabels(), [
-            // ...
-        ]);
+        return 'Cloudinary';
     }
 
     protected function defineRules(): array
@@ -44,7 +32,7 @@ class CloudinaryFs extends FlysystemFs
 
     public function getSettingsHtml(): ?string
     {
-        return Craft::$app->getView()->renderTemplate('cloudinary/fsSettings', [
+        return Craft::$app->getView()->renderTemplate('_cloudinary/fsSettings', [
             'fs' => $this,
         ]);
     }
@@ -54,9 +42,9 @@ class CloudinaryFs extends FlysystemFs
         return false;
     }
 
-    protected function createAdapter(): FilesystemAdapter
+    public function getClient(): Cloudinary
     {
-        $client = new Cloudinary([
+        $config = [
             'cloud' => [
                 'cloud_name' => App::parseEnv($this->cloudName),
                 'api_key' => App::parseEnv($this->apiKey),
@@ -66,9 +54,26 @@ class CloudinaryFs extends FlysystemFs
                 'analytics' => false,
                 'forceVersion' => false,
             ],
-        ]);
+        ];
 
-        return new CloudinaryAdapter($client, App::parseEnv($this->baseFolder), null, $this->dynamicFolders);
+        return new Cloudinary($config);
+    }
+
+    public function getCloudinaryFilesystem(): Filesystem
+    {
+        return $this->filesystem();
+    }
+
+    protected function createAdapter(): FilesystemAdapter
+    {
+        $client = $this->getClient();
+
+        return new CloudinaryAdapter(
+            client: $client,
+            prefix: '',
+            mimeTypeDetector: null,
+            dynamicFolders: true,
+        );
     }
 
     protected function invalidateCdnPath(string $path): bool
