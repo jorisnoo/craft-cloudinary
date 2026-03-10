@@ -46,9 +46,14 @@ class RemovePathFromCloudinaryPublicId extends BaseJob
 
         CloudinaryPlugin::log("Renaming public_id from '{$this->publicId}' to '$newPublicId'");
 
-        $client->uploadApi()->rename($this->publicId, $newPublicId, [
-            "resource_type" => $this->resourceType,
-            'invalidate' => true,
-        ]);
+        try {
+            $client->uploadApi()->rename($this->publicId, $newPublicId, [
+                "resource_type" => $this->resourceType,
+                'invalidate' => true,
+            ]);
+        } catch (NotFound $e) {
+            CloudinaryPlugin::log("Renaming failed. Asset with public_id '{$this->publicId}' not found.");
+        }
+
     }
 }

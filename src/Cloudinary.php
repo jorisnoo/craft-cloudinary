@@ -99,11 +99,16 @@ class Cloudinary extends Plugin
 
     protected function defineLogTarget()
     {
-        // Create a new log target
+        // Create a new log target with daily rotation
         $logTarget = new FileTarget();
-        $logTarget->logFile = Craft::getAlias('@storage/logs/cloudinary.log'); // Path to your log file
-        $logTarget->levels = ['error', 'warning', 'info']; // Log levels you want to capture
+        $logTarget->logFile = Craft::getAlias('@storage/logs/cloudinary-' . date('Y-m-d') . '.log');
+        $logTarget->levels = ['error', 'warning', 'info'];
         $logTarget->categories = ['cloudinary'];
+        $logTarget->maxFileSize = 10240; // 10MB
+        $logTarget->maxLogFiles = 30; // Keep last 30 days
+
+        // Disable automatic logging of $_SERVER, $_GET, $_POST, etc. to prevent sensitive data leakage
+        $logTarget->logVars = [];
 
         // Add the log target to the log component
         Craft::$app->log->targets[] = $logTarget;
@@ -112,5 +117,48 @@ class Cloudinary extends Plugin
     public static function log($message, $level = 'info'): void
     {
         Craft::info($message, 'cloudinary');
+    }
+
+    public static function maskSensitiveData(string $data, int $visibleChars = 4): string
+    {
+        if (strlen($data) <= $visibleChars) {
+            return str_repeat('*', strlen($data));
+        }
+
+        return substr($data, 0, $visibleChars) . str_repeat('*', min(8, strlen($data) - $visibleChars));
+    }
+
+    public static function sanitizeParams(array $params): array
+    {
+        $sensitiveKeys = [
+            'signature',
+            'api_key',
+            'api_secret',
+            'secret',
+            'token',
+            'key',
+            'password',
+            'access_token',
+            'authorization',
+            'x-api-key',
+            'cookie',
+            'set-cookie',
+        ];
+
+        $sanitized = $params;
+
+        foreach ($params as $key => $value) {
+            $lowerKey = strtolower($key);
+
+            // Check if the key matches any sensitive patterns
+            foreach ($sensitiveKeys as $sensitiveKey) {
+                if (str_contains($lowerKey, $sensitiveKey)) {
+                    $sanitized[$key] = self::maskSensitiveData((string)$value);
+                    break;
+                }
+            }
+        }
+
+        return $sanitized;
     }
 }

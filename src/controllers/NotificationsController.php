@@ -28,17 +28,34 @@ class NotificationsController extends Controller
     // /actions/_cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
+        Cloudinary::log("=== Webhook Request Received ===");
+
+        $referer = $this->request->getReferrer() ?? 'none';
+        Cloudinary::log("HTTP_REFERER: {$referer}");
+
         if (!$this->request->getIsPost()) {
+            $method = $this->request->getMethod();
+            $url = $this->request->getAbsoluteUrl();
+            $userAgent = $this->request->getUserAgent();
+            $ip = $this->request->getUserIP();
+
+            Cloudinary::log("Non-POST request received - Method: {$method}, URL: {$url}");
+            Cloudinary::log("Request details - User-Agent: {$userAgent}, IP: {$ip}");
+
+            Cloudinary::log("Non-POST webhook ignored, returning success");
             return $this->asSuccess();
         }
 
         $volumeId = $this->request->getRequiredQueryParam('volume');
         $notificationType = $this->request->getRequiredBodyParam('notification_type');
 
+        Cloudinary::log("Webhook details - Volume ID: {$volumeId}, Notification Type: {$notificationType}");
+
+        $sanitizedParams = Cloudinary::sanitizeParams($this->request->getBodyParams());
+        Cloudinary::log("Request body params: " . json_encode($sanitizedParams));
+
         $fs = $this->verifyVolume($volumeId);
         $this->verifyCloudinarySignature($fs);
-
-        Cloudinary::log("Webhook received for type $notificationType");
 
         match ($notificationType) {
 
@@ -91,33 +108,47 @@ class NotificationsController extends Controller
                 width: $this->request->getBodyParam('width'),
                 height: $this->request->getBodyParam('height'),
                 format: $this->request->getBodyParam('format'),
+                createdAt: $this->request->getBodyParam('created_at'),
             ),
 
-            default => null,
+            default => Cloudinary::log("Unknown notification type: {$notificationType}", 'warning'),
         };
+
+        Cloudinary::log("Webhook processing completed successfully");
+        Cloudinary::log("=== End Webhook Request ===");
 
         return $this->asSuccess();
     }
 
     protected function verifyVolume($volumeId): CloudinaryFs
     {
+        Cloudinary::log("Verifying volume with ID: {$volumeId}");
+
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 
         if ($volume === null) {
+            Cloudinary::log("Volume not found: {$volumeId}", 'error');
             throw new NotFoundHttpException('Volume not found');
         }
+
+        Cloudinary::log("Volume found: {$volume->name}");
 
         $fs = $volume->getFs();
 
         if (!$fs instanceof CloudinaryFs) {
+            Cloudinary::log("Invalid volume filesystem type: " . get_class($fs), 'error');
             throw new BadRequestHttpException('Invalid volume');
         }
+
+        Cloudinary::log("Volume verified successfully");
 
         return $fs;
     }
 
     protected function verifyCloudinarySignature(CloudinaryFs $fs): void
     {
+        Cloudinary::log("Verifying Cloudinary webhook signature");
+
         // Verify signature
         $apiSecret = App::parseEnv($fs->apiSecret);
         $body = $this->request->getRawBody();
@@ -125,14 +156,26 @@ class NotificationsController extends Controller
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
         $signedPayload = $body . $timestamp;
 
-        if (sha1($signedPayload . $apiSecret) !== $signature) {
+        $maskedSignature = Cloudinary::maskSensitiveData($signature);
+        Cloudinary::log("Signature verification - Timestamp: {$timestamp}, Received signature: {$maskedSignature}");
+
+        $expectedSignature = sha1($signedPayload . $apiSecret);
+
+        if ($expectedSignature !== $signature) {
+            $maskedExpected = Cloudinary::maskSensitiveData($expectedSignature);
+            Cloudinary::log("Signature mismatch - Expected: {$maskedExpected}, Received: {$maskedSignature}", 'error');
             throw new BadRequestHttpException('Invalid signature');
         }
+
+        Cloudinary::log("Signature verified successfully");
 
         //To prevent against timing attacks, we compare the expected signature to each of the received signatures.
         if ($timestamp <= strtotime('-2 hours')) {
             //Signatures match, but older than 2 hours
+            Cloudinary::log("Signature expired - Timestamp too old: {$timestamp}", 'error');
             throw new BadRequestHttpException('Expired signature');
         }
+
+        Cloudinary::log("Timestamp is valid (within 2 hours)");
     }
 }

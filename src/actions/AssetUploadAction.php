@@ -7,6 +7,7 @@ use craft\db\Query;
 use craft\db\Table;
 use craft\elements\Asset;
 use craft\helpers\Assets;
+use jorisnoo\craftcloudinary\Cloudinary;
 
 class AssetUploadAction extends BaseCloudinaryAction
 {
@@ -19,17 +20,26 @@ class AssetUploadAction extends BaseCloudinaryAction
         ?int $width,
         ?int $height,
         ?string $format,
+        ?string $createdAt,
     ): void
     {
+        Cloudinary::log("=== AssetUploadAction Started ===");
+        Cloudinary::log("Upload params - Public ID: {$publicId}, Folder: {$assetFolder}, Type: {$resourceType}, Display Name: {$displayName}");
+        Cloudinary::log("Asset details - Size: {$size} bytes, Width: {$width}, Height: {$height}, Format: {$format}, Created: {$createdAt}");
+
         $this->removePathFromPublicId($publicId, $resourceType);
 
         // First, get or create the asset folder
+        Cloudinary::log("Getting or creating asset folder: {$assetFolder}");
         $folder = (new FolderCreateAction($this->volumeId))->firstOrCreate($assetFolder);
+        Cloudinary::log("Folder retrieved/created - Folder ID: {$folder->id}, Folder path: {$folder->path}");
 
         // Prepare the filename
         $filename = $this->formatFilename($publicId, $resourceType, $format);
+        Cloudinary::log("Formatted filename: {$filename}");
 
         // Check if the asset already exists
+        Cloudinary::log("Checking if asset already exists - Volume: {$this->volumeId}, Folder: {$folder->id}, Filename: {$filename}");
         $existingAssetQuery = (new Query())
             ->from(['assets' => Table::ASSETS])
             ->innerJoin(['elements' => Table::ELEMENTS], '[[elements.id]] = [[assets.id]]')
@@ -41,11 +51,16 @@ class AssetUploadAction extends BaseCloudinaryAction
             ]);
 
         if ($existingAssetQuery->exists()) {
+            Cloudinary::log("Asset already exists, skipping creation");
+            Cloudinary::log("=== AssetUploadAction Completed (existing asset) ===");
             return;
         }
 
+        Cloudinary::log("Asset does not exist, proceeding with creation");
+
         // Otherwise, store it
         $kind = Assets::getFileKindByExtension($filename);
+        Cloudinary::log("Asset kind determined: {$kind}");
 
         $asset = new Asset([
             'volumeId' => $this->volumeId,
@@ -54,15 +69,28 @@ class AssetUploadAction extends BaseCloudinaryAction
             'title' => $displayName,
             'kind' => $kind,
             'size' => $size,
+            'dateCreated' => $createdAt,
+            'dateModified' => $createdAt,
         ]);
 
         if ($kind === Asset::KIND_IMAGE) {
             $asset->width = $width;
             $asset->height = $height;
+            Cloudinary::log("Image dimensions set - Width: {$width}, Height: {$height}");
         }
 
         $asset->setScenario(Asset::SCENARIO_INDEX);
+        Cloudinary::log("Asset scenario set to: " . Asset::SCENARIO_INDEX);
 
-        Craft::$app->getElements()->saveElement($asset);
+        Cloudinary::log("Attempting to save asset element...");
+        $saved = Craft::$app->getElements()->saveElement($asset);
+
+        if ($saved) {
+            Cloudinary::log("Asset saved successfully - Asset ID: {$asset->id}");
+        } else {
+            Cloudinary::log("Asset save failed - Errors: " . json_encode($asset->getErrors()), 'error');
+        }
+
+        Cloudinary::log("=== AssetUploadAction Completed ===");
     }
 }

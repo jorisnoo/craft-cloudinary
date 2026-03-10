@@ -65,6 +65,19 @@ class CloudinaryUrlBehavior extends Behavior
     {
         $asset = $this->owner;
 
+        if (isset($transform['mode'])) {
+            $mode = $transform['mode'];
+            $upscale = $transform['upscale'] ?? true;
+            unset($transform['mode']);
+
+            $transform['crop'] = match ($mode) {
+                'fit' => $upscale ? 'fit' : 'limit',
+                'letterbox' => $upscale ? 'pad' : 'lpad',
+                'stretch' => 'scale',
+                default => 'fill',
+            };
+        }
+
         $volume = $asset->getVolume();
         $fs = $volume->getFs();
         $transformFs = $volume->getTransformFs();

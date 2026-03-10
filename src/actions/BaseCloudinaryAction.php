@@ -15,12 +15,16 @@ abstract class BaseCloudinaryAction
 
     public function formatPath($path): ?string
     {
+        $originalPath = $path;
         $path = Str::of($path)
             ->trim('/.')
             ->whenNotEmpty(fn($string) => $string->append('/'));
 
         // When the path is empty (it's the base folder), return null
-        return $path->isEmpty() ? null : $path;
+        $result = $path->isEmpty() ? null : $path;
+        Cloudinary::log("formatPath - Input: '{$originalPath}' => Output: '{$result}'");
+
+        return $result;
     }
 
     public function formatFilename(string $publicId, string $resourceType, string $format = '*'): string
@@ -34,11 +38,15 @@ abstract class BaseCloudinaryAction
             $filename .= ".{$format}";
         }
 
+        Cloudinary::log("formatFilename - Public ID: '{$publicId}', Type: '{$resourceType}', Format: '{$format}' => Filename: '{$filename}'");
+
         return $filename;
     }
 
     public function queryAsset(string $publicId, ?string $path, string $resourceType)
     {
+        Cloudinary::log("queryAsset - Public ID: '{$publicId}', Path: '{$path}', Type: '{$resourceType}'");
+
         $filename = $this->formatFilename($publicId, $resourceType);
 
         $assetQuery = Asset::find()
@@ -52,19 +60,24 @@ abstract class BaseCloudinaryAction
             $assetQuery->kind(['video', 'audio']);
         }
 
-        return $assetQuery->one();
+        $result = $assetQuery->one();
+        Cloudinary::log("queryAsset result: " . ($result ? "Found asset ID {$result->id}" : "No asset found"));
+
+        return $result;
     }
 
     public function removePathFromPublicId(string $publicId, string $resourceType): void
     {
         if ($publicId !== basename($publicId)) {
-            Cloudinary::log("Dispatching job to remove path from public_id '$publicId'");
+            Cloudinary::log("Public ID contains path, dispatching cleanup job - Public ID: '{$publicId}', Type: '{$resourceType}'");
 
             \craft\helpers\Queue::push(new RemovePathFromCloudinaryPublicId(
                 $this->volumeId,
                 $publicId,
                 $resourceType,
             ));
+        } else {
+            Cloudinary::log("Public ID is clean (no path): '{$publicId}'");
         }
     }
 }
