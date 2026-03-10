@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.1) (2026-03-10)
+
+### Features
+
+- support syncing all Cloudinary volumes and add optional volume ID parameter to sync command ([8df7da5](https://github.com/jorisnoo/craft-cloudinary/commit/8df7da52aaa1d6bd04c4f1c4a4b5aa97a0af1f6f))
 ## [1.9.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.0) (2026-03-10)
 
 ### Features
