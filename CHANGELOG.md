@@ -1,86 +1,19 @@
-# Release Notes for Cloudinary
+# Changelog
 
-## 1.7.2 - 2024-06-05
+All notable changes to this project will be documented in this file.
 
-### Fixed
+## [1.9.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.0) (2026-03-10)
 
-- Classify PDFs as images
+### Features
 
-## 1.7.1 - 2024-05-23
+- add structured logging, sensitive data masking, daily log rotation, and transform mode mapping ([fd7ea24](https://github.com/jorisnoo/craft-cloudinary/commit/fd7ea248a8d6e16267317f88c91d2e7d2c90f7f4))
 
-### Fixed
+### Bug Fixes
 
-- Ignore backup placeholders
+- rename plugin handle from _cloudinary to cloudinary ([d6be850](https://github.com/jorisnoo/craft-cloudinary/commit/d6be850f88a1bf936503f83222d5f848361b730b))
+- derive public_id from asset path instead of unreliable extra metadata ([1129adf](https://github.com/jorisnoo/craft-cloudinary/commit/1129adf7f63726f64f0d24c08cd9f631cf26faf9))
 
-## 1.7.0 - 2024-04-20
+### Code Refactoring
 
-### Added
-
-- Support webhook notifications in fixed folders mode
-
-### Deprecated
-
-- Deprecated support for dynamic folders mode
-
-## 1.6.1 - 2024-01-26
-
-### Fixed
-
-- Parse base folder .env variable in filesystem
-
-## 1.6.0 - 2024-01-26
-
-### Added
-
-- Support all file formats ([#8](https://github.com/thomasvantuycom/craft-cloudinary/issues/8))
-
-## 1.5.1 - 2024-01-03
-
-### Fixed
-
-- Parse base folder .env variable in image transforms
-
-## 1.5.0 - 2023-12-23
-
-### Added
-
-- Support base folders ([#7](https://github.com/thomasvantuycom/craft-cloudinary/issues/7))
-
-## 1.4.0 - 2023-12-07
-
-### Added
-
-- Support custom CNAMEs ([#5](https://github.com/thomasvantuycom/craft-cloudinary/issues/5))
-
-## 1.3.0 - 2023-11-19
-
-### Added
-
-- Support dynamic folders mode ([#3](https://github.com/thomasvantuycom/craft-cloudinary/issues/3))
-
-## 1.2.1 - 2023-11-14
-
-### Fixed
-
-- Correct crop behaviour ([#2](https://github.com/thomasvantuycom/craft-cloudinary/issues/2))
-
-## 1.2.0 - 2023-09-08
-
-### Added
-
-- Support all Cloudinary image transformations
-
-## 1.1.0 - 2023-07-27
-
-### Added
-
-- Fetch and transform assets in any filesystem
-
-## 1.0.1 - 2023-07-26
-
-### Fixed
-
-- Parse .env variables in image transforms ([#1](https://github.com/thomasvantuycom/craft-cloudinary/issues/1))
-
-## 1.0.0 - 2023-07-18
-- Initial release
+- clean up logging verbosity, fix namespace casing, add return types, and extract shared helpers ([c069bbf](https://github.com/jorisnoo/craft-cloudinary/commit/c069bbf54b48737b5811ee49c9e6c034870e219b))
+- rename namespace to Noo\CraftCloudinary, update package metadata, docs, and release workflow ([d9b8e79](https://github.com/jorisnoo/craft-cloudinary/commit/d9b8e7908c31b7c36bf81f9498b9fe4638bca525))
