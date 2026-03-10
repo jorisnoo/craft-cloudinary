@@ -25,7 +25,7 @@ class NotificationsController extends Controller
 
     protected array|bool|int $allowAnonymous = true;
 
-    // /actions/_cloudinary/notifications/process?volume=1
+    // /actions/cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
         Cloudinary::log("=== Webhook Request Received ===");

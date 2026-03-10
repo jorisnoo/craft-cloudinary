@@ -32,7 +32,7 @@ class CloudinaryFs extends FlysystemFs
 
     public function getSettingsHtml(): ?string
     {
-        return Craft::$app->getView()->renderTemplate('_cloudinary/fsSettings', [
+        return Craft::$app->getView()->renderTemplate('cloudinary/fsSettings', [
             'fs' => $this,
         ]);
     }

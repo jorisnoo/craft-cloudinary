@@ -39,7 +39,7 @@ class Cloudinary extends Plugin
     public function registerConsoleCommands(): void
     {
         // Add the console command to manually trigger the sync job
-        // php craft _cloudinary/trigger-asset-sync/sync
+        // php craft cloudinary/trigger-asset-sync/sync
         Event::on(
             TriggerAssetSyncController::class,
             Controller::EVENT_DEFINE_ACTIONS,
@@ -54,7 +54,7 @@ class Cloudinary extends Plugin
             }
         );
 
-        // php craft _cloudinary/remove-paths-from-public-ids/scan 1
+        // php craft cloudinary/remove-paths-from-public-ids/scan 1
         Event::on(
             RemovePathsFromPublicIdsController::class,
             Controller::EVENT_DEFINE_ACTIONS,

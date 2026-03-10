@@ -13,7 +13,7 @@ This is a fork of [thomasvantuycom/craft-cloudinary](https://github.com/thomasva
 
 ```bash
 composer require jorisnoo/craft-cloudinary
-./craft plugin/install _cloudinary
+./craft plugin/install cloudinary
 ```
 
 ## Setup
@@ -53,7 +53,7 @@ The plugin supports real-time synchronization with Cloudinary via webhooks. When
 Go to your [Cloudinary webhook settings](https://console.cloudinary.com/settings/webhooks) and add a notification URL:
 
 ```
-https://your-site.com/actions/_cloudinary/notifications/process?volume={VOLUME_ID}
+https://your-site.com/actions/cloudinary/notifications/process?volume={VOLUME_ID}
 ```
 
 Replace `{VOLUME_ID}` with your asset volume ID.
@@ -75,10 +75,10 @@ Webhook requests are verified using Cloudinary's HMAC-SHA1 signature (via `X-Cld
 
 ```bash
 # Trigger a full asset volume sync
-php craft _cloudinary/trigger-asset-sync/sync {volumeId}
+php craft cloudinary/trigger-asset-sync/sync {volumeId}
 
 # Scan and fix public IDs that contain folder paths
-php craft _cloudinary/remove-paths-from-public-ids/scan {volumeId}
+php craft cloudinary/remove-paths-from-public-ids/scan {volumeId}
 ```
 
 ## Logging

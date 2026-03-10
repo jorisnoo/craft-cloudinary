@@ -20,7 +20,7 @@
         }
     },
     "extra": {
-        "handle": "_cloudinary",
+        "handle": "cloudinary",
         "name": "Cloudinary",
         "developer": "Joris Noordermeer",
         "documentationUrl": "https://github.com/jorisnoo/craft-cloudinary",
