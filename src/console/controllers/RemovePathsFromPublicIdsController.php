@@ -43,7 +43,7 @@ class RemovePathsFromPublicIdsController extends Controller
 
                 return [
                     "resource_type" => $resourceType,
-                    "public_id" => $item["extraMetadata"]["public_id"] ?? null,
+                    "public_id" => pathinfo($item->path(), PATHINFO_FILENAME),
                 ];
             })
             // get only the ones where the public_id contains a path
