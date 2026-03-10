@@ -38,17 +38,16 @@ class Cloudinary extends Plugin
 
     public function registerConsoleCommands(): void
     {
-        // Add the console command to manually trigger the sync job
-        // php craft cloudinary/trigger-asset-sync/sync
+        // php craft cloudinary/trigger-asset-sync/sync [volumeId]
         Event::on(
             TriggerAssetSyncController::class,
             Controller::EVENT_DEFINE_ACTIONS,
             function(DefineConsoleActionsEvent $event) {
                 $event->actions['sync'] = [
-                    'helpSummary' => 'Trigger a sync of all asset volumes with Cloudinary',
+                    'helpSummary' => 'Sync Cloudinary asset volumes (all or by volume ID)',
                     'action' => function($params) {
                         $controller = Craft::$app->controller;
-                        $controller->actionSync();
+                        $controller->actionSync($params[0] ?? null);
                     },
                 ];
             }
