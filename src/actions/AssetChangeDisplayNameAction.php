@@ -2,10 +2,7 @@
 
 namespace Noo\CraftCloudinary\actions;
 
-use Cloudinary\Asset\AssetType;
 use Craft;
-use craft\elements\Asset;
-use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
 use Noo\CraftCloudinary\Cloudinary;
 
 class AssetChangeDisplayNameAction extends BaseCloudinaryAction
@@ -24,24 +21,14 @@ class AssetChangeDisplayNameAction extends BaseCloudinaryAction
 
             $asset = $this->queryAsset($publicId, $assetFolder, $resourceType);
 
-            if($asset) {
+            if ($asset) {
                 $asset->title = $displayName;
 
                 Craft::$app->getElements()->saveElement($asset);
 
-                Cloudinary::log("Changed asset title");
-                Cloudinary::log([
-                    'asset' => $asset->id,
-                    'title' => $displayName,
-                    'publicId' => $publicId,
-                    'resourceType' => $resourceType,
-                ]);
+                Cloudinary::log("Changed asset title - Asset: {$asset->id}, Title: {$displayName}, Public ID: {$publicId}");
             } else {
-                Cloudinary::log("Could not find asset to rename");
-                Cloudinary::log([
-                    'publicId' => $publicId,
-                    'resourceType' => $resourceType,
-                ]);
+                Cloudinary::log("Could not find asset to rename - Public ID: {$publicId}, Type: {$resourceType}", 'warning');
             }
         }
     }

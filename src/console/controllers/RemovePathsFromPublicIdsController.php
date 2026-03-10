@@ -6,11 +6,10 @@ use Cloudinary\Api\Exception\NotFound;
 use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\helpers\Queue;
+use League\Flysystem\FileAttributes;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
-use League\Flysystem\FileAttributes;
 use yii\console\Controller;
-use yii\di\Instance;
 
 class RemovePathsFromPublicIdsController extends Controller
 {
@@ -31,8 +30,7 @@ class RemovePathsFromPublicIdsController extends Controller
             // get only files
             ->filter(fn($item) => $item instanceof FileAttributes)
             // get only their public ids and resource type
-            ->map(function ($item) {
-
+            ->map(function($item) {
                 $mimeType = $item['mimeType'];
 
                 $resourceType = match (true) {
@@ -48,7 +46,7 @@ class RemovePathsFromPublicIdsController extends Controller
             })
             // get only the ones where the public_id contains a path
             ->filter(fn($item) => $item["public_id"] !== basename($item["public_id"]))
-            ->each(function ($item) use ($volumeId) {
+            ->each(function($item) use ($volumeId) {
                 Cloudinary::log("Dispatching job to remove path from public_id {$item["public_id"]}");
                 Queue::push(new RemovePathFromCloudinaryPublicId($volumeId, $item["public_id"], $item["resource_type"]));
             });

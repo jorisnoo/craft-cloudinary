@@ -27,7 +27,7 @@ class Cloudinary extends Plugin
     {
         parent::init();
 
-        Craft::$app->onInit(function () {
+        Craft::$app->onInit(function() {
             $this->registerFilesystemTypes();
             $this->registerImageTransformers();
             $this->defineBehaviors();
@@ -43,13 +43,13 @@ class Cloudinary extends Plugin
         Event::on(
             TriggerAssetSyncController::class,
             Controller::EVENT_DEFINE_ACTIONS,
-            function (DefineConsoleActionsEvent $event) {
+            function(DefineConsoleActionsEvent $event) {
                 $event->actions['sync'] = [
                     'helpSummary' => 'Trigger a sync of all asset volumes with Cloudinary',
-                    'action' => function ($params) {
+                    'action' => function($params) {
                         $controller = Craft::$app->controller;
                         $controller->actionSync();
-                    }
+                    },
                 ];
             }
         );
@@ -58,13 +58,13 @@ class Cloudinary extends Plugin
         Event::on(
             RemovePathsFromPublicIdsController::class,
             Controller::EVENT_DEFINE_ACTIONS,
-            function (DefineConsoleActionsEvent $event) {
+            function(DefineConsoleActionsEvent $event) {
                 $event->actions['remove-paths-from-public-ids'] = [
                     'helpSummary' => 'Scan all Cloudinary assets and remove paths from their public ids',
-                    'action' => function ($params) {
+                    'action' => function($params) {
                         $controller = Craft::$app->controller;
                         $controller->actionScan($params);
-                    }
+                    },
                 ];
             }
         );
@@ -72,21 +72,21 @@ class Cloudinary extends Plugin
 
     private function registerFilesystemTypes(): void
     {
-        Event::on(Fs::class, Fs::EVENT_REGISTER_FILESYSTEM_TYPES, function (RegisterComponentTypesEvent $event) {
+        Event::on(Fs::class, Fs::EVENT_REGISTER_FILESYSTEM_TYPES, function(RegisterComponentTypesEvent $event) {
             $event->types[] = CloudinaryFs::class;
         });
     }
 
     private function registerImageTransformers(): void
     {
-        Event::on(ImageTransforms::class, ImageTransforms::EVENT_REGISTER_IMAGE_TRANSFORMERS, function (RegisterComponentTypesEvent $event) {
+        Event::on(ImageTransforms::class, ImageTransforms::EVENT_REGISTER_IMAGE_TRANSFORMERS, function(RegisterComponentTypesEvent $event) {
             $event->types[] = CloudinaryTransformer::class;
         });
     }
 
     private function defineBehaviors(): void
     {
-        Event::on(Asset::class, Asset::EVENT_DEFINE_BEHAVIORS, function (DefineBehaviorsEvent $event) {
+        Event::on(Asset::class, Asset::EVENT_DEFINE_BEHAVIORS, function(DefineBehaviorsEvent $event) {
             $volume = $event->sender->getVolume();
             $fs = $volume->getFs();
             $transformFs = $volume->getTransformFs();
@@ -97,7 +97,7 @@ class Cloudinary extends Plugin
         });
     }
 
-    protected function defineLogTarget()
+    protected function defineLogTarget(): void
     {
         // Create a new log target with daily rotation
         $logTarget = new FileTarget();
@@ -114,9 +114,13 @@ class Cloudinary extends Plugin
         Craft::$app->log->targets[] = $logTarget;
     }
 
-    public static function log($message, $level = 'info'): void
+    public static function log(string $message, string $level = 'info'): void
     {
-        Craft::info($message, 'cloudinary');
+        match ($level) {
+            'error' => Craft::error($message, 'cloudinary'),
+            'warning' => Craft::warning($message, 'cloudinary'),
+            default => Craft::info($message, 'cloudinary'),
+        };
     }
 
     public static function maskSensitiveData(string $data, int $visibleChars = 4): string
@@ -130,18 +134,14 @@ class Cloudinary extends Plugin
 
     public static function sanitizeParams(array $params): array
     {
-        $sensitiveKeys = [
+        $exactKeys = ['key', 'secret', 'token', 'password', 'authorization', 'cookie'];
+
+        $compoundKeys = [
             'signature',
             'api_key',
             'api_secret',
-            'secret',
-            'token',
-            'key',
-            'password',
             'access_token',
-            'authorization',
             'x-api-key',
-            'cookie',
             'set-cookie',
         ];
 
@@ -150,12 +150,11 @@ class Cloudinary extends Plugin
         foreach ($params as $key => $value) {
             $lowerKey = strtolower($key);
 
-            // Check if the key matches any sensitive patterns
-            foreach ($sensitiveKeys as $sensitiveKey) {
-                if (str_contains($lowerKey, $sensitiveKey)) {
-                    $sanitized[$key] = self::maskSensitiveData((string)$value);
-                    break;
-                }
+            $isExact = in_array($lowerKey, $exactKeys, true);
+            $isCompound = !$isExact && array_filter($compoundKeys, fn($k) => str_contains($lowerKey, $k));
+
+            if ($isExact || $isCompound) {
+                $sanitized[$key] = self::maskSensitiveData((string) $value);
             }
         }
 

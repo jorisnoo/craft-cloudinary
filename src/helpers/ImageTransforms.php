@@ -4,6 +4,16 @@ namespace Noo\CraftCloudinary\helpers;
 
 class ImageTransforms
 {
+    public static function mapModeToCrop(string $mode, bool $upscale): string
+    {
+        return match ($mode) {
+            'fit' => $upscale ? 'fit' : 'limit',
+            'letterbox' => $upscale ? 'pad' : 'lpad',
+            'stretch' => 'scale',
+            default => 'fill',
+        };
+    }
+
     public static function isNativeTransform(mixed $transform): bool
     {
         if (is_array($transform)) {

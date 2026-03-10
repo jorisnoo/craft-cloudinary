@@ -16,7 +16,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Noo\\craftcloudinary\\": "src/"
+            "Noo\\CraftCloudinary\\": "src/"
         }
     },
     "extra": {
@@ -24,7 +24,7 @@
         "name": "Cloudinary",
         "developer": "Joris Noordermeer",
         "documentationUrl": "https://github.com/jorisnoo/craft-cloudinary",
-        "class": "Noo\\craftcloudinary\\Cloudinary"
+        "class": "Noo\\CraftCloudinary\\Cloudinary"
     },
     "scripts": {
         "check-cs": "ecs check --ansi",

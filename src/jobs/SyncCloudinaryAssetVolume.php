@@ -9,8 +9,7 @@ class SyncCloudinaryAssetVolume extends BaseJob
 {
     public function __construct(
         public string $volumeHandle,
-    )
-    {
+    ) {
         parent::__construct();
     }
 

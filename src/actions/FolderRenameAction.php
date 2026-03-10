@@ -10,7 +10,7 @@ class FolderRenameAction extends BaseCloudinaryAction
      * @param ?string $fromPath
      * @param ?string $toPath
      */
-    public function rename(?string $fromPath, ?string $toPath)
+    public function rename(?string $fromPath, ?string $toPath): VolumeFolder
     {
         $fromPath = $this->formatPath($fromPath);
         $toPath = $this->formatPath($toPath);

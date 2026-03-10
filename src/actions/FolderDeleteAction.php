@@ -13,7 +13,7 @@ class FolderDeleteAction extends BaseCloudinaryAction
     {
         $folderPath = $this->formatPath($folderPath);
 
-        // Don't delete th base folder
+        // Don't delete the base folder
         if ($folderPath === null) {
             return;
         }

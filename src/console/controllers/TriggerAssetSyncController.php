@@ -7,7 +7,6 @@ use Craft;
 use craft\helpers\Queue;
 use Noo\CraftCloudinary\jobs\SyncCloudinaryAssetVolume;
 use yii\console\Controller;
-use yii\di\Instance;
 
 class TriggerAssetSyncController extends Controller
 {
@@ -19,15 +18,8 @@ class TriggerAssetSyncController extends Controller
             throw new NotFound('Volume not found');
         }
 
-        // Remove all previous jobs on the dedicated queue
-        /* @var \yii\queue\Queue $queue */
-        // $queue = Instance::ensure('cloudinaryQueue', \yii\queue\Queue::class);
-        // $queue->releaseAll();
-
-        // Push the job to the queue
         Queue::push(
             job: new SyncCloudinaryAssetVolume($volume->handle),
-            // queue: $queue,
         );
     }
 }

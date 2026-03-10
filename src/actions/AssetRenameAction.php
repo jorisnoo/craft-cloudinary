@@ -4,8 +4,6 @@ namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
-use craft\elements\Asset;
-use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
 
 class AssetRenameAction extends BaseCloudinaryAction
 {
@@ -14,8 +12,7 @@ class AssetRenameAction extends BaseCloudinaryAction
         string $toPublicId,
         string $assetFolder,
         string $resourceType,
-    ): void
-    {
+    ): void {
         // Remove path from the new public_id
         $this->removePathFromPublicId($toPublicId, $resourceType);
 
@@ -34,7 +31,6 @@ class AssetRenameAction extends BaseCloudinaryAction
 
         // If an asset is found, update the filename and save it
         if ($asset) {
-
             if ($resourceType === AssetType::RAW) {
                 $asset->filename = $toFilename;
             } else {

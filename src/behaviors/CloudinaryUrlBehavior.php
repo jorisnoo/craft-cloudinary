@@ -69,13 +69,9 @@ class CloudinaryUrlBehavior extends Behavior
             $mode = $transform['mode'];
             $upscale = $transform['upscale'] ?? true;
             unset($transform['mode']);
+            unset($transform['upscale']);
 
-            $transform['crop'] = match ($mode) {
-                'fit' => $upscale ? 'fit' : 'limit',
-                'letterbox' => $upscale ? 'pad' : 'lpad',
-                'stretch' => 'scale',
-                default => 'fill',
-            };
+            $transform['crop'] = ImageTransforms::mapModeToCrop($mode, $upscale);
         }
 
         $volume = $asset->getVolume();

@@ -4,19 +4,17 @@ namespace Noo\CraftCloudinary\jobs;
 
 use Cloudinary\Api\Exception\NotFound;
 use Cloudinary\Cloudinary;
-use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 use Craft;
 use craft\queue\BaseJob;
+use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 
 class RemovePathFromCloudinaryPublicId extends BaseJob
 {
-
     public function __construct(
         public int $volumeId,
         public string $publicId,
         public string $resourceType,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -54,6 +52,5 @@ class RemovePathFromCloudinaryPublicId extends BaseJob
         } catch (NotFound $e) {
             CloudinaryPlugin::log("Renaming failed. Asset with public_id '{$this->publicId}' not found.");
         }
-
     }
 }

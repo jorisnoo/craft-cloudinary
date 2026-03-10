@@ -42,9 +42,11 @@ class CloudinaryFs extends FlysystemFs
         return false;
     }
 
+    private ?Cloudinary $_client = null;
+
     public function getClient(): Cloudinary
     {
-        $config = [
+        return $this->_client ??= new Cloudinary([
             'cloud' => [
                 'cloud_name' => App::parseEnv($this->cloudName),
                 'api_key' => App::parseEnv($this->apiKey),
@@ -54,9 +56,7 @@ class CloudinaryFs extends FlysystemFs
                 'analytics' => false,
                 'forceVersion' => false,
             ],
-        ];
-
-        return new Cloudinary($config);
+        ]);
     }
 
     public function getCloudinaryFilesystem(): Filesystem

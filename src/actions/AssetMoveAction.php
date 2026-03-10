@@ -2,11 +2,7 @@
 
 namespace Noo\CraftCloudinary\actions;
 
-use Cloudinary\Asset\AssetType;
 use Craft;
-use craft\elements\Asset;
-use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
-use Noo\CraftCloudinary\actions\FolderCreateAction;
 
 class AssetMoveAction extends BaseCloudinaryAction
 {
@@ -23,8 +19,8 @@ class AssetMoveAction extends BaseCloudinaryAction
             // Get the asset
             $asset = $this->queryAsset($publicId, $fromFolder, $resourceType);
 
-            if($asset === null) {
-                return;
+            if ($asset === null) {
+                continue;
             }
 
             // Get the new folder

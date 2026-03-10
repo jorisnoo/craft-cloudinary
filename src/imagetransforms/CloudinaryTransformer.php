@@ -7,6 +7,7 @@ use craft\base\imagetransforms\ImageTransformerInterface;
 use craft\elements\Asset;
 use craft\models\ImageTransform;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
+use Noo\CraftCloudinary\helpers\ImageTransforms;
 
 class CloudinaryTransformer extends Component implements ImageTransformerInterface
 {
@@ -15,7 +16,7 @@ class CloudinaryTransformer extends Component implements ImageTransformerInterfa
         $transform = [
             'width' => $imageTransform->width,
             'height' => $imageTransform->height,
-            'crop' => $this->_mapModeToCrop($imageTransform->mode, $imageTransform->upscale),
+            'crop' => ImageTransforms::mapModeToCrop($imageTransform->mode, $imageTransform->upscale),
             'gravity' => $this->_mapPositionToGravity($imageTransform->position),
             'flags' => $imageTransform->interlace !== 'none' ? 'progressive' : null,
             'quality' => $imageTransform->quality,
@@ -31,16 +32,6 @@ class CloudinaryTransformer extends Component implements ImageTransformerInterfa
 
     public function invalidateAssetTransforms(Asset $asset): void
     {
-    }
-
-    private function _mapModeToCrop(string $mode, bool $upscale): string
-    {
-        return match ($mode) {
-            'fit' => $upscale ? 'fit' : 'limit',
-            'letterbox' => $upscale ? 'pad' : 'lpad',
-            'stretch' => 'scale',
-            default => 'fill',
-        };
     }
 
     private function _mapPositionToGravity(string $position): string

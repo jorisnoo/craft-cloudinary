@@ -5,16 +5,16 @@ namespace Noo\CraftCloudinary\controllers;
 use Craft;
 use craft\helpers\App;
 use craft\web\Controller;
-use Noo\CraftCloudinary\actions\FolderDeleteAction;
-use Noo\CraftCloudinary\actions\AssetUploadAction;
-use Noo\CraftCloudinary\actions\FolderRenameAction;
-use Noo\CraftCloudinary\Cloudinary;
-use Noo\CraftCloudinary\fs\CloudinaryFs;
-use Noo\CraftCloudinary\actions\FolderCreateAction;
 use Noo\CraftCloudinary\actions\AssetChangeDisplayNameAction;
 use Noo\CraftCloudinary\actions\AssetDeleteAction;
 use Noo\CraftCloudinary\actions\AssetMoveAction;
 use Noo\CraftCloudinary\actions\AssetRenameAction;
+use Noo\CraftCloudinary\actions\AssetUploadAction;
+use Noo\CraftCloudinary\actions\FolderCreateAction;
+use Noo\CraftCloudinary\actions\FolderDeleteAction;
+use Noo\CraftCloudinary\actions\FolderRenameAction;
+use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -28,31 +28,14 @@ class NotificationsController extends Controller
     // /actions/cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
-        Cloudinary::log("=== Webhook Request Received ===");
-
-        $referer = $this->request->getReferrer() ?? 'none';
-        Cloudinary::log("HTTP_REFERER: {$referer}");
-
         if (!$this->request->getIsPost()) {
-            $method = $this->request->getMethod();
-            $url = $this->request->getAbsoluteUrl();
-            $userAgent = $this->request->getUserAgent();
-            $ip = $this->request->getUserIP();
-
-            Cloudinary::log("Non-POST request received - Method: {$method}, URL: {$url}");
-            Cloudinary::log("Request details - User-Agent: {$userAgent}, IP: {$ip}");
-
-            Cloudinary::log("Non-POST webhook ignored, returning success");
             return $this->asSuccess();
         }
 
         $volumeId = $this->request->getRequiredQueryParam('volume');
         $notificationType = $this->request->getRequiredBodyParam('notification_type');
 
-        Cloudinary::log("Webhook details - Volume ID: {$volumeId}, Notification Type: {$notificationType}");
-
-        $sanitizedParams = Cloudinary::sanitizeParams($this->request->getBodyParams());
-        Cloudinary::log("Request body params: " . json_encode($sanitizedParams));
+        Cloudinary::log("Webhook received - Volume: {$volumeId}, Type: {$notificationType}");
 
         $fs = $this->verifyVolume($volumeId);
         $this->verifyCloudinarySignature($fs);
@@ -114,24 +97,17 @@ class NotificationsController extends Controller
             default => Cloudinary::log("Unknown notification type: {$notificationType}", 'warning'),
         };
 
-        Cloudinary::log("Webhook processing completed successfully");
-        Cloudinary::log("=== End Webhook Request ===");
-
         return $this->asSuccess();
     }
 
     protected function verifyVolume($volumeId): CloudinaryFs
     {
-        Cloudinary::log("Verifying volume with ID: {$volumeId}");
-
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 
         if ($volume === null) {
             Cloudinary::log("Volume not found: {$volumeId}", 'error');
             throw new NotFoundHttpException('Volume not found');
         }
-
-        Cloudinary::log("Volume found: {$volume->name}");
 
         $fs = $volume->getFs();
 
@@ -140,42 +116,27 @@ class NotificationsController extends Controller
             throw new BadRequestHttpException('Invalid volume');
         }
 
-        Cloudinary::log("Volume verified successfully");
-
         return $fs;
     }
 
     protected function verifyCloudinarySignature(CloudinaryFs $fs): void
     {
-        Cloudinary::log("Verifying Cloudinary webhook signature");
-
-        // Verify signature
         $apiSecret = App::parseEnv($fs->apiSecret);
         $body = $this->request->getRawBody();
         $timestamp = $this->request->getHeaders()->get('X-Cld-Timestamp');
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
         $signedPayload = $body . $timestamp;
 
-        $maskedSignature = Cloudinary::maskSensitiveData($signature);
-        Cloudinary::log("Signature verification - Timestamp: {$timestamp}, Received signature: {$maskedSignature}");
-
         $expectedSignature = sha1($signedPayload . $apiSecret);
 
-        if ($expectedSignature !== $signature) {
-            $maskedExpected = Cloudinary::maskSensitiveData($expectedSignature);
-            Cloudinary::log("Signature mismatch - Expected: {$maskedExpected}, Received: {$maskedSignature}", 'error');
+        if (!hash_equals($expectedSignature, $signature)) {
+            Cloudinary::log("Webhook signature mismatch", 'error');
             throw new BadRequestHttpException('Invalid signature');
         }
 
-        Cloudinary::log("Signature verified successfully");
-
-        //To prevent against timing attacks, we compare the expected signature to each of the received signatures.
         if ($timestamp <= strtotime('-2 hours')) {
-            //Signatures match, but older than 2 hours
-            Cloudinary::log("Signature expired - Timestamp too old: {$timestamp}", 'error');
+            Cloudinary::log("Webhook signature expired - Timestamp: {$timestamp}", 'error');
             throw new BadRequestHttpException('Expired signature');
         }
-
-        Cloudinary::log("Timestamp is valid (within 2 hours)");
     }
 }
