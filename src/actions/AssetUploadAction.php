@@ -1,13 +1,13 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use Craft;
 use craft\db\Query;
 use craft\db\Table;
 use craft\elements\Asset;
 use craft\helpers\Assets;
-use jorisnoo\craftcloudinary\Cloudinary;
+use Noo\CraftCloudinary\Cloudinary;
 
 class AssetUploadAction extends BaseCloudinaryAction
 {

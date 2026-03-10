@@ -4,7 +4,7 @@
     "type": "craft-plugin",
     "license": "MIT",
     "require": {
-        "php": ">=8.0.2",
+        "php": ">=8.2",
         "cloudinary/cloudinary_php": "^2.14.0",
         "craftcms/cms": "^4.13.0",
         "thomasvantuycom/flysystem-cloudinary": "dev-fix/silently-fail-deleting-inexistent",
@@ -16,15 +16,15 @@
     },
     "autoload": {
         "psr-4": {
-            "jorisnoo\\craftcloudinary\\": "src/"
+            "Noo\\craftcloudinary\\": "src/"
         }
     },
     "extra": {
         "handle": "_cloudinary",
         "name": "Cloudinary",
-        "developer": "Thomas Vantuycom",
-        "documentationUrl": "https://github.com/thomasvantuycom/craft-cloudinary",
-        "class": "jorisnoo\\craftcloudinary\\Cloudinary"
+        "developer": "Joris Noordermeer",
+        "documentationUrl": "https://github.com/jorisnoo/craft-cloudinary",
+        "class": "Noo\\craftcloudinary\\Cloudinary"
     },
     "scripts": {
         "check-cs": "ecs check --ansi",
@@ -34,7 +34,7 @@
     "config": {
         "sort-packages": true,
         "platform": {
-            "php": "8.3"
+            "php": "8.2"
         },
         "allow-plugins": {
             "yiisoft/yii2-composer": true,

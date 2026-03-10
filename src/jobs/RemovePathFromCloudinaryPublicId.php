@@ -1,10 +1,10 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\jobs;
+namespace Noo\CraftCloudinary\jobs;
 
 use Cloudinary\Api\Exception\NotFound;
 use Cloudinary\Cloudinary;
-use jorisnoo\craftcloudinary\Cloudinary as CloudinaryPlugin;
+use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 use Craft;
 use craft\queue\BaseJob;
 

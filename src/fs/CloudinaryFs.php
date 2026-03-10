@@ -1,6 +1,6 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\fs;
+namespace Noo\CraftCloudinary\fs;
 
 use Cloudinary\Cloudinary;
 use Craft;

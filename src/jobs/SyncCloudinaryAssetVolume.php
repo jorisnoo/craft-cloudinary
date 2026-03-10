@@ -1,6 +1,6 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\jobs;
+namespace Noo\CraftCloudinary\jobs;
 
 use Craft;
 use craft\queue\BaseJob;

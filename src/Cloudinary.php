@@ -1,6 +1,6 @@
 <?php
 
-namespace jorisnoo\craftcloudinary;
+namespace Noo\CraftCloudinary;
 
 use Craft;
 use craft\base\Event;
@@ -12,11 +12,11 @@ use craft\events\DefineConsoleActionsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Fs;
 use craft\services\ImageTransforms;
-use jorisnoo\craftcloudinary\behaviors\CloudinaryUrlBehavior;
-use jorisnoo\craftcloudinary\console\controllers\RemovePathsFromPublicIdsController;
-use jorisnoo\craftcloudinary\console\controllers\TriggerAssetSyncController;
-use jorisnoo\craftcloudinary\fs\CloudinaryFs;
-use jorisnoo\craftcloudinary\imagetransforms\CloudinaryTransformer;
+use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
+use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
+use Noo\CraftCloudinary\console\controllers\TriggerAssetSyncController;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use yii\log\FileTarget;
 
 class Cloudinary extends Plugin

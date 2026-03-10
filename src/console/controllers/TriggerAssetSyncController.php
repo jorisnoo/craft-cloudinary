@@ -1,11 +1,11 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\console\controllers;
+namespace Noo\CraftCloudinary\console\controllers;
 
 use Cloudinary\Api\Exception\NotFound;
 use Craft;
 use craft\helpers\Queue;
-use jorisnoo\craftcloudinary\jobs\SyncCloudinaryAssetVolume;
+use Noo\CraftCloudinary\jobs\SyncCloudinaryAssetVolume;
 use yii\console\Controller;
 use yii\di\Instance;
 

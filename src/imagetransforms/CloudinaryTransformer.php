@@ -1,12 +1,12 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\imagetransforms;
+namespace Noo\CraftCloudinary\imagetransforms;
 
 use craft\base\Component;
 use craft\base\imagetransforms\ImageTransformerInterface;
 use craft\elements\Asset;
 use craft\models\ImageTransform;
-use jorisnoo\craftcloudinary\behaviors\CloudinaryUrlBehavior;
+use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 
 class CloudinaryTransformer extends Component implements ImageTransformerInterface
 {

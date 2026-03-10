@@ -1,11 +1,11 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\elements\Asset;
-use jorisnoo\craftcloudinary\actions\BaseCloudinaryAction;
+use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
 
 class AssetDeleteAction extends BaseCloudinaryAction
 {

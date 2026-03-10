@@ -1,9 +1,9 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use craft\records\VolumeFolder;
-use jorisnoo\craftcloudinary\Cloudinary;
+use Noo\CraftCloudinary\Cloudinary;
 
 class FolderCreateAction extends BaseCloudinaryAction
 {

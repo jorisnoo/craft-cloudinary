@@ -1,13 +1,13 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\console\controllers;
+namespace Noo\CraftCloudinary\console\controllers;
 
 use Cloudinary\Api\Exception\NotFound;
 use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\helpers\Queue;
-use jorisnoo\craftcloudinary\Cloudinary;
-use jorisnoo\craftcloudinary\jobs\RemovePathFromCloudinaryPublicId;
+use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 use League\Flysystem\FileAttributes;
 use yii\console\Controller;
 use yii\di\Instance;

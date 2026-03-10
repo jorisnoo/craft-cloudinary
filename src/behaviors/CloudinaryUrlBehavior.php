@@ -1,14 +1,14 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\behaviors;
+namespace Noo\CraftCloudinary\behaviors;
 
 use Cloudinary\Asset\AssetType;
 use craft\elements\Asset;
 use craft\events\DefineAssetUrlEvent;
 use craft\events\GenerateTransformEvent;
-use jorisnoo\craftcloudinary\fs\CloudinaryFs;
-use jorisnoo\craftcloudinary\helpers\ImageTransforms;
-use jorisnoo\craftcloudinary\imagetransforms\CloudinaryTransformer;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\helpers\ImageTransforms;
+use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use yii\base\Behavior;
 
 class CloudinaryUrlBehavior extends Behavior

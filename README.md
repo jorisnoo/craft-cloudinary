@@ -2,46 +2,34 @@
 
 This plugin integrates [Cloudinary](https://cloudinary.com/) with [Craft CMS](https://craftcms.com/). Assets can be uploaded from Craft's control panel and then transformed and delivered by Cloudinary, even if stored in a different filesystem. The plugin is compatible with your existing Craft template code and named image transforms.
 
+This is a fork of [thomasvantuycom/craft-cloudinary](https://github.com/thomasvantuycom/craft-cloudinary) with additional features including webhook synchronization, daily log rotation, and improved error handling.
+
 ## Requirements
 
-This plugin requires Craft CMS 4.4.0 or later, and PHP 8.0.2 or later.
+- Craft CMS 4.13.0 or later
+- PHP 8.2 or later
 
 ## Installation
 
-You can install this plugin from the Plugin Store or with Composer.
-
-#### From the Plugin Store
-
-Go to the Plugin Store in your project’s Control Panel and search for “Cloudinary”. Then press “Install”.
-
-#### With Composer
-
-Open your terminal and run the following commands:
-
 ```bash
-# go to the project directory
-cd /path/to/my-project.test
-
-# tell Composer to load the plugin
-composer require thomasvantuycom/craft-cloudinary
-
-# tell Craft to install the plugin
-./craft plugin/install cloudinary
+composer require jorisnoo/craft-cloudinary
+./craft plugin/install _cloudinary
 ```
 
 ## Setup
 
-The plugin adds a Cloudinary filesystem type to Craft. It can be used solely as a transform filesystem or as a storage filesystem as well. 
+The plugin adds a Cloudinary filesystem type to Craft. It can be used solely as a transform filesystem or as a storage filesystem as well.
 
-To create a new Cloudinary filesystem to use with your volumes, visit **Settings** → **Filesystems**, and press **New filesystem**. Select “Cloudinary” for the **Filesystem Type** setting and configure as needed. If you'd like to store assets in Cloudinary and deliver them without any transformations, make sure to toggle **Files in this filesystem have public URLs** and to set the **Base URL** to “https://res.cloudinary.com/demo/image/upload/”, replacing “demo” with your own Cloudinary cloud name.
+To create a new Cloudinary filesystem, visit **Settings** → **Filesystems**, press **New filesystem**, and select "Cloudinary" as the **Filesystem Type**. Configure your Cloud Name, API Key, and API Secret (environment variables are supported).
 
-To start using the filesystem, visit **Settings** → **Assets** → **Volumes**. Here you can create a new volume using the Cloudinary filesystem for both storage and transforms, or add the Cloudinary filesystem to any existing volumes for transforms only. In the latter case, any assets with public URLs from any local or remote filesystem are transformed by Cloudinary using the [fetch feature](https://cloudinary.com/documentation/fetch_remote_images#fetch_and_deliver_remote_files). This may not work in local development setups.
+To start using the filesystem, visit **Settings** → **Assets** → **Volumes**. You can create a new volume using the Cloudinary filesystem for both storage and transforms, or add the Cloudinary filesystem to any existing volume for transforms only. In the latter case, assets with public URLs from any filesystem are transformed by Cloudinary using the [fetch feature](https://cloudinary.com/documentation/fetch_remote_images#fetch_and_deliver_remote_files).
 
 ## Image Transformations
 
-The plugin supports all of [Craft's native transform options](https://craftcms.com/docs/4.x/image-transforms.html). These can be found under **Settings** → **Assets** → **Image Transforms**.
+The plugin supports all of [Craft's native transform options](https://craftcms.com/docs/4.x/image-transforms.html), including mode (fit, letterbox, stretch, crop), position, quality, and format.
 
-In addition, you can incorporate any of [Cloudinary's transformation options](https://cloudinary.com/documentation/transformation_reference#overview) in the transforms you define in your templates, like so:
+You can also use any of [Cloudinary's transformation options](https://cloudinary.com/documentation/transformation_reference#overview) in template transforms:
+
 ```twig
 {% set thumb = {
   width: 100,
@@ -53,8 +41,46 @@ In addition, you can incorporate any of [Cloudinary's transformation options](ht
 
 <img src="{{ asset.getUrl(thumb) }}">
 ```
-Transformation options should be in camelCase, meaning `aspect_ratio` becomes `aspectRatio`, or `fetch_format` becomes `fetchFornat`.
 
-## Webhook notifications
+Transformation options should be in camelCase (`aspect_ratio` → `aspectRatio`, `fetch_format` → `fetchFormat`).
 
-To keep Craft aligned with changes made directly in Cloudinary, activate webhook notifications. Simply go to your [Cloudinary settings](https://console.cloudinary.com/settings/c-4547d495209fcc884b171f78858f04/webhooks) and add a new notification URL. Point it to the base URL of your website followed by `/actions/cloudinary/notifications/process?volume={VOLUME_ID}`. Remember to replace `{VOLUME_ID}` with the relevant asset volume ID. Enable the relevant notification types: `upload`, `delete`, `rename`, `create_folder`, and `delete_folder`. Keep in mind, this setup only functions in local development if your local domain is publicly accessible via a service like ngrok. Additionally, note that the webhook may struggle with a large volume of operations. If you frequently make extensive changes in the Cloudinary Console, consider re-indexing your asset volume instead.
+## Webhook Notifications
+
+The plugin supports real-time synchronization with Cloudinary via webhooks. When assets are uploaded, deleted, renamed, or moved in Cloudinary, the changes are automatically reflected in Craft.
+
+### Setup
+
+Go to your [Cloudinary webhook settings](https://console.cloudinary.com/settings/webhooks) and add a notification URL:
+
+```
+https://your-site.com/actions/_cloudinary/notifications/process?volume={VOLUME_ID}
+```
+
+Replace `{VOLUME_ID}` with your asset volume ID.
+
+### Supported notification types
+
+- `upload` — creates assets in Craft
+- `delete` — removes assets from Craft
+- `rename` — updates filenames
+- `move` / `move_or_rename_asset_folder` — moves assets between folders
+- `resource_display_name_changed` — updates asset titles
+- `create_folder` / `delete_folder` — manages folder structure
+
+### Security
+
+Webhook requests are verified using Cloudinary's HMAC-SHA1 signature (via `X-Cld-Signature` and `X-Cld-Timestamp` headers). Signatures older than 2 hours are rejected.
+
+## Console Commands
+
+```bash
+# Trigger a full asset volume sync
+php craft _cloudinary/trigger-asset-sync/sync {volumeId}
+
+# Scan and fix public IDs that contain folder paths
+php craft _cloudinary/remove-paths-from-public-ids/scan {volumeId}
+```
+
+## Logging
+
+The plugin logs to `storage/logs/cloudinary-YYYY-MM-DD.log` with daily rotation (30 days retained, 10MB max per file). Sensitive data (API keys, signatures) is automatically masked in logs.

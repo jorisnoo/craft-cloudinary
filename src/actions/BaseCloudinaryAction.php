@@ -1,12 +1,12 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use craft\elements\Asset;
 use Illuminate\Support\Str;
-use jorisnoo\craftcloudinary\Cloudinary;
-use jorisnoo\craftcloudinary\jobs\RemovePathFromCloudinaryPublicId;
+use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 
 abstract class BaseCloudinaryAction
 {

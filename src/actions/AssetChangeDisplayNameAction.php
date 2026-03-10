@@ -1,12 +1,12 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\elements\Asset;
-use jorisnoo\craftcloudinary\actions\BaseCloudinaryAction;
-use jorisnoo\craftcloudinary\Cloudinary;
+use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
+use Noo\CraftCloudinary\Cloudinary;
 
 class AssetChangeDisplayNameAction extends BaseCloudinaryAction
 {

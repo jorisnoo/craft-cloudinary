@@ -1,20 +1,20 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\controllers;
+namespace Noo\CraftCloudinary\controllers;
 
 use Craft;
 use craft\helpers\App;
 use craft\web\Controller;
-use jorisnoo\craftcloudinary\actions\FolderDeleteAction;
-use jorisnoo\craftcloudinary\actions\AssetUploadAction;
-use jorisnoo\craftcloudinary\actions\FolderRenameAction;
-use jorisnoo\craftcloudinary\Cloudinary;
-use jorisnoo\craftcloudinary\fs\CloudinaryFs;
-use jorisnoo\craftcloudinary\actions\FolderCreateAction;
-use jorisnoo\craftcloudinary\actions\AssetChangeDisplayNameAction;
-use jorisnoo\craftcloudinary\actions\AssetDeleteAction;
-use jorisnoo\craftcloudinary\actions\AssetMoveAction;
-use jorisnoo\craftcloudinary\actions\AssetRenameAction;
+use Noo\CraftCloudinary\actions\FolderDeleteAction;
+use Noo\CraftCloudinary\actions\AssetUploadAction;
+use Noo\CraftCloudinary\actions\FolderRenameAction;
+use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\actions\FolderCreateAction;
+use Noo\CraftCloudinary\actions\AssetChangeDisplayNameAction;
+use Noo\CraftCloudinary\actions\AssetDeleteAction;
+use Noo\CraftCloudinary\actions\AssetMoveAction;
+use Noo\CraftCloudinary\actions\AssetRenameAction;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;

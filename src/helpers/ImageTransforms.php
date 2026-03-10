@@ -1,6 +1,6 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\helpers;
+namespace Noo\CraftCloudinary\helpers;
 
 class ImageTransforms
 {

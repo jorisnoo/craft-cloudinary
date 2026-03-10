@@ -1,12 +1,12 @@
 <?php
 
-namespace jorisnoo\craftcloudinary\actions;
+namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\elements\Asset;
-use jorisnoo\craftcloudinary\actions\BaseCloudinaryAction;
-use jorisnoo\craftcloudinary\actions\FolderCreateAction;
+use Noo\CraftCloudinary\actions\BaseCloudinaryAction;
+use Noo\CraftCloudinary\actions\FolderCreateAction;
 
 class AssetMoveAction extends BaseCloudinaryAction
 {
