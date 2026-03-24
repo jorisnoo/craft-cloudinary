@@ -4,9 +4,16 @@ This plugin integrates [Cloudinary](https://cloudinary.com/) with [Craft CMS](ht
 
 This is a fork of [thomasvantuycom/craft-cloudinary](https://github.com/thomasvantuycom/craft-cloudinary) with additional features including webhook synchronization, daily log rotation, and improved error handling.
 
+## Version Strategy
+
+| Branch    | Version | Craft CMS |
+|-----------|---------|-----------|
+| `main`    | 2.x     | 5.x       |
+| `craft-4` | 1.x     | 4.x       |
+
 ## Requirements
 
-- Craft CMS 4.13.0 or later
+- Craft CMS 5.0.0 or later
 - PHP 8.2 or later
 
 ## Installation
@@ -26,7 +33,7 @@ To start using the filesystem, visit **Settings** → **Assets** → **Volumes**
 
 ## Image Transformations
 
-The plugin supports all of [Craft's native transform options](https://craftcms.com/docs/4.x/image-transforms.html), including mode (fit, letterbox, stretch, crop), position, quality, and format.
+The plugin supports all of [Craft's native transform options](https://craftcms.com/docs/5.x/system/image-transforms.html), including mode (fit, letterbox, stretch, crop), position, quality, and format.
 
 You can also use any of [Cloudinary's transformation options](https://cloudinary.com/documentation/transformation_reference#overview) in template transforms:
 

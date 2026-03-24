@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.0 (2026-03-24)
+
+### Breaking Changes
+
+- Requires Craft CMS 5.0.0+
+- Requires `craftcms/flysystem` 2.0+
+
+### Upgrade Notes
+
+- The `craft-4` branch holds the 1.x line for Craft 4 projects.
+
 ## [1.9.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.1) (2026-03-10)
 
 ### Features

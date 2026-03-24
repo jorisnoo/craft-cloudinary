@@ -37,11 +37,6 @@ class CloudinaryFs extends FlysystemFs
         ]);
     }
 
-    public function getShowHasUrlSetting(): bool
-    {
-        return false;
-    }
-
     private ?Cloudinary $_client = null;
 
     public function getClient(): Cloudinary
