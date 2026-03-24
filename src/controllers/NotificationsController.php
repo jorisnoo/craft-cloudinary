@@ -15,6 +15,7 @@ use Noo\CraftCloudinary\actions\FolderDeleteAction;
 use Noo\CraftCloudinary\actions\FolderRenameAction;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\helpers\WebhookSignature;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -125,18 +126,12 @@ class NotificationsController extends Controller
         $body = $this->request->getRawBody();
         $timestamp = $this->request->getHeaders()->get('X-Cld-Timestamp');
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
-        $signedPayload = $body . $timestamp;
 
-        $expectedSignature = sha1($signedPayload . $apiSecret);
-
-        if (!hash_equals($expectedSignature, $signature)) {
-            Cloudinary::log("Webhook signature mismatch", 'error');
-            throw new BadRequestHttpException('Invalid signature');
-        }
-
-        if ($timestamp <= strtotime('-2 hours')) {
-            Cloudinary::log("Webhook signature expired - Timestamp: {$timestamp}", 'error');
-            throw new BadRequestHttpException('Expired signature');
+        try {
+            WebhookSignature::verify($body, $timestamp, $signature, $apiSecret);
+        } catch (BadRequestHttpException $e) {
+            Cloudinary::log("Webhook signature verification failed: {$e->getMessage()}", 'error');
+            throw $e;
         }
     }
 }

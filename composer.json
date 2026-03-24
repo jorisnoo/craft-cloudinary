@@ -12,7 +12,8 @@
     },
     "require-dev": {
         "craftcms/ecs": "dev-main",
-        "craftcms/phpstan": "dev-main"
+        "craftcms/phpstan": "dev-main",
+        "pestphp/pest": "^3.8"
     },
     "autoload": {
         "psr-4": {
@@ -38,7 +39,8 @@
         },
         "allow-plugins": {
             "yiisoft/yii2-composer": true,
-            "craftcms/plugin-installer": true
+            "craftcms/plugin-installer": true,
+            "pestphp/pest-plugin": true
         }
     },
     "minimum-stability": "dev",
