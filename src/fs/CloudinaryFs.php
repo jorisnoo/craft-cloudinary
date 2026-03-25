@@ -65,9 +65,6 @@ class CloudinaryFs extends FlysystemFs
 
         return new CloudinaryAdapter(
             client: $client,
-            prefix: '',
-            mimeTypeDetector: null,
-            dynamicFolders: true,
         );
     }
 

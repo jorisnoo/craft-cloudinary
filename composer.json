@@ -5,9 +5,9 @@
     "license": "MIT",
     "require": {
         "php": ">=8.2",
-        "cloudinary/cloudinary_php": "^2.14.0",
+        "cloudinary/cloudinary_php": "^3.1.0",
         "craftcms/cms": "^5.0.0",
-        "thomasvantuycom/flysystem-cloudinary": "dev-fix/silently-fail-deleting-inexistent",
+        "thomasvantuycom/flysystem-cloudinary": "^2.0.2",
         "craftcms/flysystem": "^2.0.0"
     },
     "require-dev": {
@@ -45,10 +45,5 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:jorisnoo/flysystem-cloudinary.git"
-        }
-    ]
+    "repositories": []
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "74b835f2bd9dbc31399844d1fa9749d6",
+    "content-hash": "e83dfdf0163260e756db80a239d0c3db",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -255,37 +255,36 @@
         },
         {
             "name": "cloudinary/cloudinary_php",
-            "version": "2.14.0",
+            "version": "3.1.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cloudinary/cloudinary_php.git",
-                "reference": "5967558bbf5d88e851ebd554559e850ac45b9236"
+                "reference": "c373c01db4ecfe9637b1cb384ab1587c4af86793"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cloudinary/cloudinary_php/zipball/5967558bbf5d88e851ebd554559e850ac45b9236",
-                "reference": "5967558bbf5d88e851ebd554559e850ac45b9236",
+                "url": "https://api.github.com/repos/cloudinary/cloudinary_php/zipball/c373c01db4ecfe9637b1cb384ab1587c4af86793",
+                "reference": "c373c01db4ecfe9637b1cb384ab1587c4af86793",
                 "shasum": ""
             },
             "require": {
-                "cloudinary/transformation-builder-sdk": "^1",
+                "cloudinary/transformation-builder-sdk": "^2",
                 "ext-json": "*",
-                "guzzlehttp/guzzle": "^6.5.8|^7.4.5",
+                "guzzlehttp/guzzle": "^7.4.5",
                 "guzzlehttp/promises": "^1.5.3|^2.0",
-                "guzzlehttp/psr7": "^1.9.1|^2.5",
-                "monolog/monolog": "^1|^2|^3",
-                "php": ">=5.6.0",
-                "psr/log": "^1|^2|^3"
+                "guzzlehttp/psr7": "^2.7",
+                "monolog/monolog": "^2|^3",
+                "php": ">=8.0.0",
+                "psr/log": "^2|^3"
             },
             "require-dev": {
-                "consolidation/robo": "~1",
                 "ext-dom": "*",
                 "ext-libxml": "*",
                 "ext-zip": "*",
                 "friendsofphp/php-cs-fixer": "*",
                 "phpmd/phpmd": "*",
-                "squizlabs/php_codesniffer": "3.*",
-                "symfony/phpunit-bridge": "^5.2"
+                "squizlabs/php_codesniffer": "*",
+                "symfony/phpunit-bridge": "^7.2"
             },
             "type": "library",
             "autoload": {
@@ -315,37 +314,36 @@
             "support": {
                 "email": "info@cloudinary.com",
                 "issues": "https://github.com/cloudinary/cloudinary_php/issues",
-                "source": "https://github.com/cloudinary/cloudinary_php/tree/2.14.0"
+                "source": "https://github.com/cloudinary/cloudinary_php/tree/3.1.2"
             },
-            "time": "2024-05-07T15:14:12+00:00"
+            "time": "2025-09-21T10:52:52+00:00"
         },
         {
             "name": "cloudinary/transformation-builder-sdk",
-            "version": "1.5.0",
+            "version": "2.1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cloudinary/php-transformation-builder-sdk.git",
-                "reference": "8c225472e96291a7af23ddf8947bdf31baac403e"
+                "reference": "2f75344e1aa3c39d95a4610177e1a20fe7e35789"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cloudinary/php-transformation-builder-sdk/zipball/8c225472e96291a7af23ddf8947bdf31baac403e",
-                "reference": "8c225472e96291a7af23ddf8947bdf31baac403e",
+                "url": "https://api.github.com/repos/cloudinary/php-transformation-builder-sdk/zipball/2f75344e1aa3c39d95a4610177e1a20fe7e35789",
+                "reference": "2f75344e1aa3c39d95a4610177e1a20fe7e35789",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "php": ">=5.6.0"
+                "php": ">=8.0.0"
             },
             "require-dev": {
-                "consolidation/robo": "~1",
                 "ext-dom": "*",
                 "ext-libxml": "*",
                 "ext-zip": "*",
                 "friendsofphp/php-cs-fixer": "*",
                 "phpmd/phpmd": "*",
-                "squizlabs/php_codesniffer": "3.*",
-                "symfony/phpunit-bridge": "^5.2"
+                "squizlabs/php_codesniffer": "*",
+                "symfony/phpunit-bridge": "^7.2"
             },
             "type": "library",
             "autoload": {
@@ -375,9 +373,9 @@
             "support": {
                 "email": "info@cloudinary.com",
                 "issues": "https://github.com/cloudinary/php-transformation-builder-sdk/issues",
-                "source": "https://github.com/cloudinary/php-transformation-builder-sdk/tree/1.5.0"
+                "source": "https://github.com/cloudinary/php-transformation-builder-sdk/tree/2.1.3"
             },
-            "time": "2024-05-27T12:26:00+00:00"
+            "time": "2026-02-08T10:31:34+00:00"
         },
         {
             "name": "commerceguys/addressing",
@@ -2083,16 +2081,16 @@
         },
         {
             "name": "league/flysystem",
-            "version": "3.32.0",
+            "version": "3.33.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "254b1595b16b22dbddaaef9ed6ca9fdac4956725"
+                "reference": "570b8871e0ce693764434b29154c54b434905350"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/254b1595b16b22dbddaaef9ed6ca9fdac4956725",
-                "reference": "254b1595b16b22dbddaaef9ed6ca9fdac4956725",
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/570b8871e0ce693764434b29154c54b434905350",
+                "reference": "570b8871e0ce693764434b29154c54b434905350",
                 "shasum": ""
             },
             "require": {
@@ -2160,9 +2158,9 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/3.32.0"
+                "source": "https://github.com/thephpleague/flysystem/tree/3.33.0"
             },
-            "time": "2026-02-25T17:01:41+00:00"
+            "time": "2026-03-25T07:59:30+00:00"
         },
         {
             "name": "league/flysystem-local",
@@ -7142,27 +7140,28 @@
         },
         {
             "name": "thomasvantuycom/flysystem-cloudinary",
-            "version": "dev-fix/silently-fail-deleting-inexistent",
+            "version": "v2.0.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/jorisnoo/flysystem-cloudinary.git",
-                "reference": "8508088af81dde3e5a735daca25cde53477a4e90"
+                "url": "https://github.com/thomasvantuycom/flysystem-cloudinary.git",
+                "reference": "254405aeb3da9ef178e6839038a7a9cbb5801fb9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jorisnoo/flysystem-cloudinary/zipball/8508088af81dde3e5a735daca25cde53477a4e90",
-                "reference": "8508088af81dde3e5a735daca25cde53477a4e90",
+                "url": "https://api.github.com/repos/thomasvantuycom/flysystem-cloudinary/zipball/254405aeb3da9ef178e6839038a7a9cbb5801fb9",
+                "reference": "254405aeb3da9ef178e6839038a7a9cbb5801fb9",
                 "shasum": ""
             },
             "require": {
-                "cloudinary/cloudinary_php": "^2.12",
+                "cloudinary/cloudinary_php": "^3.1.0",
                 "league/flysystem": "^3.23",
                 "php": "^8.0.2"
             },
             "require-dev": {
                 "league/flysystem-adapter-test-utilities": "^3.21",
                 "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^10.5"
+                "phpunit/phpunit": "^10.5",
+                "symplify/easy-coding-standard": "^12.5"
             },
             "type": "library",
             "autoload": {
@@ -7170,19 +7169,7 @@
                     "ThomasVantuycom\\FlysystemCloudinary\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "ThomasVantuycom\\FlysystemCloudinary\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "phpunit tests"
-                ],
-                "phpstan": [
-                    "phpstan analyse --level=4 src"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -7196,27 +7183,27 @@
             ],
             "description": "Cloudinary filesystem adapter for Flysystem.",
             "keywords": [
+                "Flysystem",
                 "cloudinary",
                 "file",
                 "files",
                 "filesystem",
-                "flysystem",
                 "storage"
             ],
             "support": {
+                "docs": "https://github.com/thomasvantuycom/flysystem-cloudinary",
                 "email": "thomasvantuycom@proton.me",
                 "issues": "https://github.com/thomasvantuycom/flysystem-cloudinary/issues",
-                "source": "https://github.com/thomasvantuycom/flysystem-cloudinary",
-                "docs": "https://github.com/thomasvantuycom/flysystem-cloudinary",
-                "rss": "https://github.com/thomasvantuycom/flysystem-cloudinary/releases.atom"
+                "rss": "https://github.com/thomasvantuycom/flysystem-cloudinary/releases.atom",
+                "source": "https://github.com/thomasvantuycom/flysystem-cloudinary"
             },
             "funding": [
                 {
-                    "type": "github",
-                    "url": "https://github.com/sponsors/thomasvantuycom"
+                    "url": "https://github.com/sponsors/thomasvantuycom",
+                    "type": "github"
                 }
             ],
-            "time": "2024-11-15T06:42:39+00:00"
+            "time": "2025-03-20T17:52:06+00:00"
         },
         {
             "name": "twig/twig",
@@ -11117,8 +11104,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "craftcms/ecs": 20,
-        "craftcms/phpstan": 20,
-        "thomasvantuycom/flysystem-cloudinary": 20
+        "craftcms/phpstan": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
