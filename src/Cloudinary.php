@@ -13,6 +13,7 @@ use craft\events\DefineAssetThumbUrlEvent;
 use craft\events\DefineConsoleActionsEvent;
 use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterComponentTypesEvent;
+use craft\helpers\Queue;
 use craft\helpers\UrlHelper;
 use craft\services\Assets;
 use craft\services\Fs;
@@ -24,6 +25,7 @@ use Noo\CraftCloudinary\console\controllers\ThumbnailCacheController;
 use Noo\CraftCloudinary\console\controllers\TriggerAssetSyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
+use Noo\CraftCloudinary\jobs\CacheThumbnail;
 use Noo\CraftCloudinary\models\Settings;
 use Noo\CraftCloudinary\services\ThumbnailCache;
 use yii\log\FileTarget;
@@ -167,11 +169,32 @@ class Cloudinary extends Plugin
                 return;
             }
 
-            $event->url = UrlHelper::actionUrl('cloudinary/thumbnails/serve', [
-                'assetId' => $asset->id,
-                'w' => $event->width,
-                'h' => $event->height,
+            if ($this->thumbnailCache->has($asset->id, $event->width, $event->height)) {
+                $event->url = UrlHelper::actionUrl('cloudinary/thumbnails/serve', [
+                    'assetId' => $asset->id,
+                    'w' => $event->width,
+                    'h' => $event->height,
+                ]);
+                return;
+            }
+
+            $cloudinaryUrl = $asset->getCloudinaryUrl([
+                'width' => $event->width,
+                'height' => $event->height,
+                'crop' => 'fill',
+                'gravity' => 'auto',
+                'fetch_format' => 'auto',
+                'quality' => 'auto',
             ]);
+
+            $event->url = $cloudinaryUrl;
+
+            Queue::push(new CacheThumbnail(
+                assetId: $asset->id,
+                width: $event->width,
+                height: $event->height,
+                cloudinaryUrl: $cloudinaryUrl,
+            ));
         });
     }
 
