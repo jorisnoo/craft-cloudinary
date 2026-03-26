@@ -81,12 +81,17 @@ Webhook requests are verified using Cloudinary's HMAC-SHA1 signature (via `X-Cld
 ## Console Commands
 
 ```bash
-# Trigger a full asset volume sync
-php craft cloudinary/trigger-asset-sync/sync {volumeId}
+# Sync all Cloudinary asset volumes (runs directly, no queue)
+php craft cloudinary/sync
+
+# Skip deletion of missing assets
+php craft cloudinary/sync --delete-missing-assets=0
 
 # Scan and fix public IDs that contain folder paths
 php craft cloudinary/remove-paths-from-public-ids/scan {volumeId}
 ```
+
+The sync command auto-detects all Cloudinary volumes and runs the indexing directly in the CLI process, avoiding queue timeout issues. Ideal for cron jobs.
 
 ## Logging
 

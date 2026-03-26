@@ -22,7 +22,7 @@ use craft\utilities\ClearCaches;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
 use Noo\CraftCloudinary\console\controllers\ThumbnailCacheController;
-use Noo\CraftCloudinary\console\controllers\TriggerAssetSyncController;
+use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use Noo\CraftCloudinary\jobs\CacheThumbnail;
@@ -72,16 +72,16 @@ class Cloudinary extends Plugin
 
     public function registerConsoleCommands(): void
     {
-        // php craft cloudinary/trigger-asset-sync/sync [volumeId]
+        // php craft cloudinary/sync
         Event::on(
-            TriggerAssetSyncController::class,
+            SyncController::class,
             Controller::EVENT_DEFINE_ACTIONS,
             function(DefineConsoleActionsEvent $event) {
-                $event->actions['sync'] = [
-                    'helpSummary' => 'Sync Cloudinary asset volumes (all or by volume ID)',
-                    'action' => function($params) {
+                $event->actions['index'] = [
+                    'helpSummary' => 'Sync all Cloudinary asset volumes directly (no queue)',
+                    'action' => function() {
                         $controller = Craft::$app->controller;
-                        $controller->actionSync($params[0] ?? null);
+                        return $controller->actionIndex();
                     },
                 ];
             }
