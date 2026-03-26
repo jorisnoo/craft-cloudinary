@@ -30,20 +30,22 @@ class AssetRenameAction extends BaseCloudinaryAction
 
         $asset = $this->queryAsset($fromPublicId, $path, $resourceType);
 
-        // If an asset is found, update the filename and save it
-        if ($asset) {
-            if ($resourceType === AssetType::RAW) {
-                $asset->filename = $toFilename;
-            } else {
-                $extension = pathinfo($asset->filename, PATHINFO_EXTENSION);
-                $asset->filename = "$toFilename.$extension";
-            }
+        if ($asset === null) {
+            // Already renamed or doesn't exist — skip
+            return;
+        }
 
-            Craft::$app->getElements()->saveElement($asset);
+        if ($resourceType === AssetType::RAW) {
+            $asset->filename = $toFilename;
+        } else {
+            $extension = pathinfo($asset->filename, PATHINFO_EXTENSION);
+            $asset->filename = "$toFilename.$extension";
+        }
 
-            if (Cloudinary::getInstance()->getSettings()->enableThumbnailCache) {
-                Cloudinary::getInstance()->thumbnailCache->invalidateAsset($asset->id);
-            }
+        Craft::$app->getElements()->saveElement($asset);
+
+        if (Cloudinary::getInstance()->getSettings()->enableThumbnailCache) {
+            Cloudinary::getInstance()->thumbnailCache->invalidateAsset($asset->id);
         }
     }
 }

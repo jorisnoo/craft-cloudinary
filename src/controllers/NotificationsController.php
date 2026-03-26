@@ -130,6 +130,9 @@ class NotificationsController extends Controller
         $timestamp = $this->request->getHeaders()->get('X-Cld-Timestamp');
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
 
+        // Fail fast on expired timestamps before looping volumes
+        WebhookSignature::verifyTimestamp($timestamp);
+
         $volumes = Craft::$app->getVolumes()->getAllVolumes();
 
         foreach ($volumes as $volume) {

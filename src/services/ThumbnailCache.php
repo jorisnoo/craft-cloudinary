@@ -21,6 +21,35 @@ class ThumbnailCache extends Component
         return $path !== null && !$this->isExpired($path);
     }
 
+    public function isPending(int $assetId, int $width, int $height): bool
+    {
+        $path = $this->getPendingPath($assetId, $width, $height);
+
+        return file_exists($path);
+    }
+
+    public function markPending(int $assetId, int $width, int $height): void
+    {
+        $dir = $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
+        FileHelper::createDirectory($dir);
+
+        touch($this->getPendingPath($assetId, $width, $height));
+    }
+
+    public function clearPending(int $assetId, int $width, int $height): void
+    {
+        $path = $this->getPendingPath($assetId, $width, $height);
+
+        if (file_exists($path)) {
+            unlink($path);
+        }
+    }
+
+    private function getPendingPath(int $assetId, int $width, int $height): string
+    {
+        return $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId . DIRECTORY_SEPARATOR . "{$width}x{$height}.pending";
+    }
+
     public function get(int $assetId, int $width, int $height): ?string
     {
         $path = $this->findCachedFile($assetId, $width, $height);
@@ -112,8 +141,11 @@ class ThumbnailCache extends Component
         }
 
         $pattern = $dir . DIRECTORY_SEPARATOR . "{$width}x{$height}.*";
-        $matches = glob($pattern);
+        $matches = array_filter(
+            glob($pattern) ?: [],
+            fn($path) => !str_ends_with($path, '.pending'),
+        );
 
-        return $matches ? $matches[0] : null;
+        return $matches ? reset($matches) : null;
     }
 }

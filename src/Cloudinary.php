@@ -189,6 +189,12 @@ class Cloudinary extends Plugin
 
             $event->url = $cloudinaryUrl;
 
+            if ($this->thumbnailCache->isPending($asset->id, $event->width, $event->height)) {
+                return;
+            }
+
+            $this->thumbnailCache->markPending($asset->id, $event->width, $event->height);
+
             Queue::push(new CacheThumbnail(
                 assetId: $asset->id,
                 width: $event->width,
@@ -213,18 +219,14 @@ class Cloudinary extends Plugin
 
     protected function defineLogTarget(): void
     {
-        // Create a new log target with daily rotation
         $logTarget = new FileTarget();
-        $logTarget->logFile = Craft::getAlias('@storage/logs/cloudinary-' . date('Y-m-d') . '.log');
+        $logTarget->logFile = Craft::getAlias('@storage/logs/cloudinary.log');
         $logTarget->levels = ['error', 'warning', 'info'];
         $logTarget->categories = ['cloudinary'];
-        $logTarget->maxFileSize = 10240; // 10MB
-        $logTarget->maxLogFiles = 30; // Keep last 30 days
-
-        // Disable automatic logging of $_SERVER, $_GET, $_POST, etc. to prevent sensitive data leakage
+        $logTarget->maxFileSize = 10240; // 10MB per file before rotation
+        $logTarget->maxLogFiles = 30; // Keep 30 rotated files
         $logTarget->logVars = [];
 
-        // Add the log target to the log component
         Craft::$app->log->targets[] = $logTarget;
     }
 

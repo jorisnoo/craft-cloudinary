@@ -23,10 +23,18 @@ class ThumbnailsController extends Controller
             throw new NotFoundHttpException('Thumbnail not cached');
         }
 
+        $etag = '"' . filemtime($cachedPath) . '-' . filesize($cachedPath) . '"';
+
+        $ifNoneMatch = $this->request->getHeaders()->get('If-None-Match');
+        if ($ifNoneMatch === $etag) {
+            $this->response->setStatusCode(304);
+            return $this->response;
+        }
+
         $mimeType = FileHelper::getMimeTypeByExtension($cachedPath) ?? 'image/jpeg';
 
         $this->response->headers->set('Cache-Control', 'public, max-age=604800');
-        $this->response->headers->set('ETag', '"' . md5_file($cachedPath) . '"');
+        $this->response->headers->set('ETag', $etag);
 
         return $this->response->sendFile($cachedPath, null, [
             'mimeType' => $mimeType,

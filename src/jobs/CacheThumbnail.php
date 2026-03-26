@@ -23,31 +23,37 @@ class CacheThumbnail extends BaseJob
 
     public function execute($queue): void
     {
-        $contents = @file_get_contents($this->cloudinaryUrl);
+        $cache = Cloudinary::getInstance()->thumbnailCache;
 
-        if ($contents === false) {
-            Cloudinary::log("Failed to cache thumbnail from: {$this->cloudinaryUrl}", 'error');
-            return;
+        try {
+            $contents = @file_get_contents($this->cloudinaryUrl);
+
+            if ($contents === false) {
+                Cloudinary::log("Failed to cache thumbnail from: {$this->cloudinaryUrl}", 'error');
+                return;
+            }
+
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($contents);
+
+            $extension = match ($mimeType) {
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                'image/avif' => 'avif',
+                'image/svg+xml' => 'svg',
+                default => 'jpg',
+            };
+
+            $cache->put(
+                $this->assetId,
+                $this->width,
+                $this->height,
+                $contents,
+                $extension,
+            );
+        } finally {
+            $cache->clearPending($this->assetId, $this->width, $this->height);
         }
-
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->buffer($contents);
-
-        $extension = match ($mimeType) {
-            'image/png' => 'png',
-            'image/gif' => 'gif',
-            'image/webp' => 'webp',
-            'image/avif' => 'avif',
-            'image/svg+xml' => 'svg',
-            default => 'jpg',
-        };
-
-        Cloudinary::getInstance()->thumbnailCache->put(
-            $this->assetId,
-            $this->width,
-            $this->height,
-            $contents,
-            $extension,
-        );
     }
 }

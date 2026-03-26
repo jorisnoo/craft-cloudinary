@@ -113,7 +113,6 @@ class CloudinaryUrlBehavior extends Behavior
     {
         $mimeType = $this->owner->getMimeType();
 
-
         if ($mimeType === null) {
             return AssetType::RAW;
         }

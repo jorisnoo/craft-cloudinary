@@ -16,15 +16,18 @@ class AssetMoveAction extends BaseCloudinaryAction
             $fromFolder = $this->formatPath($resource['from_asset_folder']);
             $toFolder = $this->formatPath($resource['to_asset_folder']);
 
-            // Get the asset
             $asset = $this->queryAsset($publicId, $fromFolder, $resourceType);
 
             if ($asset === null) {
+                // Already moved or doesn't exist — skip
                 continue;
             }
 
-            // Get the new folder
             $targetFolder = (new FolderCreateAction($this->volumeId))->firstOrCreate($toFolder);
+
+            if ($asset->folderId === $targetFolder->id) {
+                continue;
+            }
 
             $asset->folderId = $targetFolder->id;
 
