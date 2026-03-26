@@ -9,9 +9,16 @@ use yii\base\Component;
 
 class ThumbnailCache extends Component
 {
+    private const PENDING_MAX_AGE = 300; // 5 minutes
+
     public function getCacheDir(): string
     {
         return Craft::getAlias('@storage/runtime/cloudinary-thumbs');
+    }
+
+    private function getAssetDir(int $assetId): string
+    {
+        return $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
     }
 
     public function has(int $assetId, int $width, int $height): bool
@@ -21,19 +28,25 @@ class ThumbnailCache extends Component
         return $path !== null && !$this->isExpired($path);
     }
 
-    public function isPending(int $assetId, int $width, int $height): bool
+    public function tryMarkPending(int $assetId, int $width, int $height): bool
     {
         $path = $this->getPendingPath($assetId, $width, $height);
 
-        return file_exists($path);
-    }
+        // Clean up stale pending files
+        if (file_exists($path) && (time() - filemtime($path)) > self::PENDING_MAX_AGE) {
+            @unlink($path);
+        }
 
-    public function markPending(int $assetId, int $width, int $height): void
-    {
-        $dir = $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
-        FileHelper::createDirectory($dir);
+        FileHelper::createDirectory($this->getAssetDir($assetId));
 
-        touch($this->getPendingPath($assetId, $width, $height));
+        // Atomic: fopen with 'x' fails if the file already exists
+        $handle = @fopen($path, 'x');
+        if ($handle === false) {
+            return false;
+        }
+
+        fclose($handle);
+        return true;
     }
 
     public function clearPending(int $assetId, int $width, int $height): void
@@ -41,13 +54,13 @@ class ThumbnailCache extends Component
         $path = $this->getPendingPath($assetId, $width, $height);
 
         if (file_exists($path)) {
-            unlink($path);
+            @unlink($path);
         }
     }
 
     private function getPendingPath(int $assetId, int $width, int $height): string
     {
-        return $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId . DIRECTORY_SEPARATOR . "{$width}x{$height}.pending";
+        return $this->getAssetDir($assetId) . DIRECTORY_SEPARATOR . "{$width}x{$height}.pending";
     }
 
     public function get(int $assetId, int $width, int $height): ?string
@@ -63,7 +76,7 @@ class ThumbnailCache extends Component
 
     public function put(int $assetId, int $width, int $height, string $contents, string $extension): string
     {
-        $dir = $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
+        $dir = $this->getAssetDir($assetId);
         FileHelper::createDirectory($dir);
 
         $path = $dir . DIRECTORY_SEPARATOR . "{$width}x{$height}.{$extension}";
@@ -74,7 +87,7 @@ class ThumbnailCache extends Component
 
     public function invalidateAsset(int $assetId): void
     {
-        $dir = $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
+        $dir = $this->getAssetDir($assetId);
 
         if (is_dir($dir)) {
             FileHelper::removeDirectory($dir);
@@ -101,6 +114,13 @@ class ThumbnailCache extends Component
         $removed = 0;
 
         foreach (FileHelper::findFiles($dir) as $file) {
+            if (str_ends_with($file, '.pending')) {
+                if ((time() - filemtime($file)) > self::PENDING_MAX_AGE) {
+                    @unlink($file);
+                }
+                continue;
+            }
+
             if ($this->isExpired($file)) {
                 unlink($file);
                 $removed++;
@@ -134,7 +154,7 @@ class ThumbnailCache extends Component
 
     private function findCachedFile(int $assetId, int $width, int $height): ?string
     {
-        $dir = $this->getCacheDir() . DIRECTORY_SEPARATOR . $assetId;
+        $dir = $this->getAssetDir($assetId);
 
         if (!is_dir($dir)) {
             return null;

@@ -19,13 +19,12 @@ class AssetMoveAction extends BaseCloudinaryAction
             $asset = $this->queryAsset($publicId, $fromFolder, $resourceType);
 
             if ($asset === null) {
-                // Already moved or doesn't exist — skip
                 continue;
             }
 
             $targetFolder = (new FolderCreateAction($this->volumeId))->firstOrCreate($toFolder);
 
-            if ($asset->folderId === $targetFolder->id) {
+            if ($asset->folderId === (int) $targetFolder->id) {
                 continue;
             }
 

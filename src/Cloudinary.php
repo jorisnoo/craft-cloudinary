@@ -189,11 +189,9 @@ class Cloudinary extends Plugin
 
             $event->url = $cloudinaryUrl;
 
-            if ($this->thumbnailCache->isPending($asset->id, $event->width, $event->height)) {
+            if (!$this->thumbnailCache->tryMarkPending($asset->id, $event->width, $event->height)) {
                 return;
             }
-
-            $this->thumbnailCache->markPending($asset->id, $event->width, $event->height);
 
             Queue::push(new CacheThumbnail(
                 assetId: $asset->id,

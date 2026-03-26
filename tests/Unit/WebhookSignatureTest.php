@@ -45,23 +45,13 @@ describe('WebhookSignature::verify', function() {
         WebhookSignature::verify($tamperedBody, $timestamp, $signature, $secret);
     })->throws(BadRequestHttpException::class, 'Invalid signature');
 
-    it('rejects expired signatures before checking the hash', function() {
+    it('does not check timestamp expiration', function() {
         $body = '{"notification_type":"upload"}';
         $secret = 'my-api-secret';
         $timestamp = (string) (time() - 7201);
-        // Use a wrong secret so the hash would also fail —
-        // we expect "Expired signature", not "Invalid signature"
-        $signature = sha1($body . $timestamp . 'wrong-secret');
-
-        WebhookSignature::verify($body, $timestamp, $signature, $secret);
-    })->throws(BadRequestHttpException::class, 'Expired signature');
-
-    it('accepts signatures just within the 2 hour window', function() {
-        $body = '{"notification_type":"upload"}';
-        $secret = 'my-api-secret';
-        $timestamp = (string) (time() - 3600);
         $signature = sha1($body . $timestamp . $secret);
 
+        // verify() only checks the hash — timestamp validation is the caller's responsibility
         WebhookSignature::verify($body, $timestamp, $signature, $secret);
 
         expect(true)->toBeTrue();

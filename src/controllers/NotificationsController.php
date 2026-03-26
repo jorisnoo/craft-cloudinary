@@ -165,6 +165,7 @@ class NotificationsController extends Controller
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
 
         try {
+            WebhookSignature::verifyTimestamp($timestamp);
             WebhookSignature::verify($body, $timestamp, $signature, $apiSecret);
         } catch (BadRequestHttpException $e) {
             Cloudinary::log("Webhook signature verification failed: {$e->getMessage()}", 'error');

@@ -31,7 +31,6 @@ class AssetRenameAction extends BaseCloudinaryAction
         $asset = $this->queryAsset($fromPublicId, $path, $resourceType);
 
         if ($asset === null) {
-            // Already renamed or doesn't exist — skip
             return;
         }
 

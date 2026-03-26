@@ -8,8 +8,6 @@ class WebhookSignature
 {
     public static function verify(string $body, string $timestamp, string $signature, string $apiSecret): void
     {
-        self::verifyTimestamp($timestamp);
-
         $expectedSignature = sha1($body . $timestamp . $apiSecret);
 
         if (!hash_equals($expectedSignature, $signature)) {
