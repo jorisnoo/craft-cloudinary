@@ -26,20 +26,24 @@ class NotificationsController extends Controller
 
     protected array|bool|int $allowAnonymous = true;
 
-    // /actions/cloudinary/notifications/process?volume=1
+    // /actions/cloudinary/notifications/process or /actions/cloudinary/notifications/process?volume=1
     public function actionProcess(): Response
     {
         if (!$this->request->getIsPost()) {
             return $this->asSuccess();
         }
 
-        $volumeId = $this->request->getRequiredQueryParam('volume');
         $notificationType = $this->request->getRequiredBodyParam('notification_type');
+        $volumeId = $this->request->getQueryParam('volume');
+
+        if ($volumeId) {
+            $fs = $this->verifyVolume($volumeId);
+            $this->verifyCloudinarySignature($fs);
+        } else {
+            [$volumeId, $fs] = $this->resolveVolumeFromSignature();
+        }
 
         Cloudinary::log("Webhook received - Volume: {$volumeId}, Type: {$notificationType}");
-
-        $fs = $this->verifyVolume($volumeId);
-        $this->verifyCloudinarySignature($fs);
 
         match ($notificationType) {
 
@@ -118,6 +122,36 @@ class NotificationsController extends Controller
         }
 
         return $fs;
+    }
+
+    protected function resolveVolumeFromSignature(): array
+    {
+        $body = $this->request->getRawBody();
+        $timestamp = $this->request->getHeaders()->get('X-Cld-Timestamp');
+        $signature = $this->request->getHeaders()->get('X-Cld-Signature');
+
+        $volumes = Craft::$app->getVolumes()->getAllVolumes();
+
+        foreach ($volumes as $volume) {
+            $fs = $volume->getFs();
+
+            if (!$fs instanceof CloudinaryFs) {
+                continue;
+            }
+
+            $apiSecret = App::parseEnv($fs->apiSecret);
+
+            try {
+                WebhookSignature::verify($body, $timestamp, $signature, $apiSecret);
+
+                return [$volume->id, $fs];
+            } catch (BadRequestHttpException) {
+                continue;
+            }
+        }
+
+        Cloudinary::log('Webhook signature did not match any Cloudinary volume', 'error');
+        throw new BadRequestHttpException('Invalid signature');
     }
 
     protected function verifyCloudinarySignature(CloudinaryFs $fs): void
