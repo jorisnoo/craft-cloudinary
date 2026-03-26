@@ -4,6 +4,7 @@ namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
+use Noo\CraftCloudinary\Cloudinary;
 
 class AssetRenameAction extends BaseCloudinaryAction
 {
@@ -39,6 +40,10 @@ class AssetRenameAction extends BaseCloudinaryAction
             }
 
             Craft::$app->getElements()->saveElement($asset);
+
+            if (Cloudinary::getInstance()->getSettings()->enableThumbnailCache) {
+                Cloudinary::getInstance()->thumbnailCache->invalidateAsset($asset->id);
+            }
         }
     }
 }

@@ -1,0 +1,21 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.lightswitchField({
+    label: "Enable Thumbnail Cache"|t('cloudinary'),
+    instructions: "Cache Cloudinary thumbnails locally to reduce external requests in the control panel."|t('cloudinary'),
+    id: 'enableThumbnailCache',
+    name: 'enableThumbnailCache',
+    on: settings.enableThumbnailCache,
+    errors: settings.getErrors('enableThumbnailCache'),
+}) }}
+
+{{ forms.textField({
+    label: "Thumbnail Cache TTL"|t('cloudinary'),
+    instructions: "How long cached thumbnails are valid, in seconds. Set to 0 for no expiry. Default: 604800 (7 days)."|t('cloudinary'),
+    id: 'thumbnailCacheTtl',
+    name: 'thumbnailCacheTtl',
+    value: settings.thumbnailCacheTtl,
+    type: 'number',
+    min: 0,
+    errors: settings.getErrors('thumbnailCacheTtl'),
+}) }}
