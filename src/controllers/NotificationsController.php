@@ -49,13 +49,9 @@ class NotificationsController extends Controller
         $timestamp = (int) $this->request->getHeaders()->get('X-Cld-Timestamp');
 
         if ($this->isDuplicateWebhook($signature)) {
-            Cloudinary::log("Duplicate webhook skipped - Type: {$notificationType}");
             return $this->asSuccess();
         }
 
-        Cloudinary::log("Webhook received - Volume: {$volumeId}, Type: {$notificationType}");
-
-        $message = $this->buildActivityMessage($notificationType);
         $publicId = $this->request->getBodyParam('public_id');
 
         Cloudinary::getInstance()->syncGuard->whileProcessingWebhook(function() use ($notificationType, $volumeId) {
@@ -119,28 +115,7 @@ class NotificationsController extends Controller
 
         $this->logWebhook($signature, $notificationType, $publicId, $timestamp);
 
-        Cloudinary::getInstance()->activityLog->log(
-            "webhook:{$notificationType}",
-            $message,
-            $volumeId,
-        );
-
         return $this->asSuccess();
-    }
-
-    private function buildActivityMessage(string $notificationType): string
-    {
-        return match ($notificationType) {
-            'upload' => 'Uploaded ' . $this->request->getBodyParam('display_name', 'asset'),
-            'delete' => 'Deleted asset(s)',
-            'rename' => 'Renamed ' . $this->request->getBodyParam('from_public_id', 'asset'),
-            'move' => 'Moved asset(s)',
-            'resource_display_name_changed' => 'Changed display name',
-            'create_folder' => 'Created folder ' . $this->request->getBodyParam('folder_path', ''),
-            'delete_folder' => 'Deleted folder ' . $this->request->getBodyParam('folder_path', ''),
-            'move_or_rename_asset_folder' => 'Renamed folder ' . $this->request->getBodyParam('from_path', ''),
-            default => "Webhook: {$notificationType}",
-        };
     }
 
     protected function isDuplicateWebhook(?string $signature): bool

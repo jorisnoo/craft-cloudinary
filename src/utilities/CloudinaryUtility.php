@@ -4,8 +4,8 @@ namespace Noo\CraftCloudinary\utilities;
 
 use Craft;
 use craft\base\Utility;
+use craft\db\Query;
 use craft\elements\Asset;
-use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 
 class CloudinaryUtility extends Utility
@@ -27,12 +27,20 @@ class CloudinaryUtility extends Utility
 
     public static function contentHtml(): string
     {
-        $plugin = Cloudinary::getInstance();
-
         return Craft::$app->getView()->renderTemplate('cloudinary/_utilities/cloudinary', [
             'volumes' => self::getCloudinaryVolumes(),
-            'activity' => $plugin->activityLog->getRecent(),
+            'webhooks' => self::getRecentWebhooks(),
         ]);
+    }
+
+    private static function getRecentWebhooks(int $limit = 50): array
+    {
+        return (new Query())
+            ->select(['notificationType', 'publicId', 'processedAt'])
+            ->from('{{%cloudinary_webhook_log}}')
+            ->orderBy(['processedAt' => SORT_DESC])
+            ->limit($limit)
+            ->all();
     }
 
     private static function getCloudinaryVolumes(): array

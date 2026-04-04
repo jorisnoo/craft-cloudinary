@@ -1,5 +1,3 @@
-{% import "_includes/forms" as forms %}
-
 <h2>Volumes</h2>
 
 {% if volumes|length %}
@@ -27,29 +25,27 @@
 
 <hr>
 
-<h2>Recent Activity</h2>
+<h2>Recent Webhooks</h2>
 
-{% if activity|length %}
+{% if webhooks|length %}
     <table class="data fullwidth">
         <thead>
             <tr>
                 <th>{{ 'Date'|t('cloudinary') }}</th>
                 <th>{{ 'Type'|t('cloudinary') }}</th>
-                <th>{{ 'Message'|t('cloudinary') }}</th>
-                <th>{{ 'Volume'|t('cloudinary') }}</th>
+                <th>{{ 'Public ID'|t('cloudinary') }}</th>
             </tr>
         </thead>
         <tbody>
-            {% for entry in activity %}
+            {% for entry in webhooks %}
                 <tr>
-                    <td>{{ entry.dateCreated|datetime('short') }}</td>
-                    <td><code>{{ entry.type }}</code></td>
-                    <td>{{ entry.message }}</td>
-                    <td>{{ entry.volumeName ?? '---' }}</td>
+                    <td>{{ entry.processedAt|datetime('short') }}</td>
+                    <td><code>{{ entry.notificationType }}</code></td>
+                    <td>{{ entry.publicId ?? '---' }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 {% else %}
-    <p class="light">{{ 'No recent activity.'|t('cloudinary') }}</p>
+    <p class="light">{{ 'No recent webhook activity.'|t('cloudinary') }}</p>
 {% endif %}

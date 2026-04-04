@@ -4,7 +4,6 @@ namespace Noo\CraftCloudinary;
 
 use Craft;
 use craft\base\Event;
-use craft\base\Model;
 use craft\base\Plugin;
 use craft\console\Controller;
 use craft\elements\Asset;
@@ -22,8 +21,6 @@ use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use Noo\CraftCloudinary\listeners\AssetEventListener;
-use Noo\CraftCloudinary\models\Settings;
-use Noo\CraftCloudinary\services\ActivityLog;
 use Noo\CraftCloudinary\services\CloudinaryApi;
 use Noo\CraftCloudinary\services\SyncGuard;
 use Noo\CraftCloudinary\services\SyncReconciler;
@@ -31,7 +28,6 @@ use Noo\CraftCloudinary\utilities\CloudinaryUtility;
 use yii\log\FileTarget;
 
 /**
- * @property ActivityLog $activityLog
  * @property CloudinaryApi $cloudinaryApi
  * @property SyncGuard $syncGuard
  * @property SyncReconciler $syncReconciler
@@ -40,14 +36,11 @@ class Cloudinary extends Plugin
 {
     public string $schemaVersion = '2.1.0';
 
-    public bool $hasCpSettings = true;
-
     public function init(): void
     {
         parent::init();
 
         $this->setComponents([
-            'activityLog' => ActivityLog::class,
             'cloudinaryApi' => CloudinaryApi::class,
             'syncGuard' => SyncGuard::class,
             'syncReconciler' => SyncReconciler::class,
@@ -67,18 +60,6 @@ class Cloudinary extends Plugin
                 $this->registerUtilities();
             }
         });
-    }
-
-    protected function createSettingsModel(): ?Model
-    {
-        return new Settings();
-    }
-
-    protected function settingsHtml(): ?string
-    {
-        return Craft::$app->getView()->renderTemplate('cloudinary/settings', [
-            'settings' => $this->getSettings(),
-        ]);
     }
 
     public function registerConsoleCommands(): void

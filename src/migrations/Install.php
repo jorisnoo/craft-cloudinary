@@ -8,18 +8,6 @@ class Install extends Migration
 {
     public function safeUp(): bool
     {
-        if (!$this->db->tableExists('{{%cloudinary_activity_log}}')) {
-            $this->createTable('{{%cloudinary_activity_log}}', [
-                'id' => $this->primaryKey(),
-                'volumeId' => $this->integer(),
-                'type' => $this->string(50)->notNull(),
-                'message' => $this->string(255)->notNull(),
-                'dateCreated' => $this->dateTime()->notNull(),
-            ]);
-
-            $this->createIndex(null, '{{%cloudinary_activity_log}}', ['dateCreated']);
-        }
-
         if (!$this->db->tableExists('{{%cloudinary_webhook_log}}')) {
             $this->createTable('{{%cloudinary_webhook_log}}', [
                 'id' => $this->primaryKey(),
