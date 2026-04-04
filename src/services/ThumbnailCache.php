@@ -152,6 +152,29 @@ class ThumbnailCache extends Component
         return (time() - filemtime($path)) > $ttl;
     }
 
+    public function getStats(): array
+    {
+        $dir = $this->getCacheDir();
+
+        if (!is_dir($dir)) {
+            return ['count' => 0, 'size' => 0];
+        }
+
+        $count = 0;
+        $size = 0;
+
+        foreach (FileHelper::findFiles($dir) as $file) {
+            if (str_ends_with($file, '.pending')) {
+                continue;
+            }
+
+            $count++;
+            $size += filesize($file);
+        }
+
+        return ['count' => $count, 'size' => $size];
+    }
+
     private function findCachedFile(int $assetId, int $width, int $height): ?string
     {
         $dir = $this->getAssetDir($assetId);

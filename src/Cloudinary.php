@@ -18,6 +18,7 @@ use craft\helpers\UrlHelper;
 use craft\services\Assets;
 use craft\services\Fs;
 use craft\services\ImageTransforms;
+use craft\services\Utilities;
 use craft\utilities\ClearCaches;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
@@ -27,15 +28,18 @@ use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use Noo\CraftCloudinary\jobs\CacheThumbnail;
 use Noo\CraftCloudinary\models\Settings;
+use Noo\CraftCloudinary\services\ActivityLog;
 use Noo\CraftCloudinary\services\ThumbnailCache;
+use Noo\CraftCloudinary\utilities\CloudinaryUtility;
 use yii\log\FileTarget;
 
 /**
  * @property ThumbnailCache $thumbnailCache
+ * @property ActivityLog $activityLog
  */
 class Cloudinary extends Plugin
 {
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '2.0.0';
 
     public bool $hasCpSettings = true;
 
@@ -45,6 +49,7 @@ class Cloudinary extends Plugin
 
         $this->setComponents([
             'thumbnailCache' => ThumbnailCache::class,
+            'activityLog' => ActivityLog::class,
         ]);
 
         Craft::$app->onInit(function() {
@@ -55,6 +60,10 @@ class Cloudinary extends Plugin
             $this->defineLogTarget();
             $this->registerThumbnailCaching();
             $this->registerCacheOptions();
+
+            if (Craft::$app->getRequest()->getIsCpRequest()) {
+                $this->registerUtilities();
+            }
         });
     }
 
@@ -122,6 +131,15 @@ class Cloudinary extends Plugin
                         $controller->actionCleanup();
                     },
                 ];
+            }
+        );
+    }
+
+    private function registerUtilities(): void
+    {
+        Event::on(Utilities::class, Utilities::EVENT_REGISTER_UTILITIES,
+            function(RegisterComponentTypesEvent $event) {
+                $event->types[] = CloudinaryUtility::class;
             }
         );
     }

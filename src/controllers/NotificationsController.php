@@ -45,6 +45,8 @@ class NotificationsController extends Controller
 
         Cloudinary::log("Webhook received - Volume: {$volumeId}, Type: {$notificationType}");
 
+        $message = $this->buildActivityMessage($notificationType);
+
         match ($notificationType) {
 
             // https://cloudinary.com/documentation/notifications#rename
@@ -102,7 +104,28 @@ class NotificationsController extends Controller
             default => Cloudinary::log("Unknown notification type: {$notificationType}", 'warning'),
         };
 
+        Cloudinary::getInstance()->activityLog->log(
+            "webhook:{$notificationType}",
+            $message,
+            $volumeId,
+        );
+
         return $this->asSuccess();
+    }
+
+    private function buildActivityMessage(string $notificationType): string
+    {
+        return match ($notificationType) {
+            'upload' => 'Uploaded ' . $this->request->getBodyParam('display_name', 'asset'),
+            'delete' => 'Deleted asset(s)',
+            'rename' => 'Renamed ' . $this->request->getBodyParam('from_public_id', 'asset'),
+            'move' => 'Moved asset(s)',
+            'resource_display_name_changed' => 'Changed display name',
+            'create_folder' => 'Created folder ' . $this->request->getBodyParam('folder_path', ''),
+            'delete_folder' => 'Deleted folder ' . $this->request->getBodyParam('folder_path', ''),
+            'move_or_rename_asset_folder' => 'Renamed folder ' . $this->request->getBodyParam('from_path', ''),
+            default => "Webhook: {$notificationType}",
+        };
     }
 
     protected function verifyVolume($volumeId): CloudinaryFs
