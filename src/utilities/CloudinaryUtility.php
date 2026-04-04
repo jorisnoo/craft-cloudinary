@@ -22,7 +22,7 @@ class CloudinaryUtility extends Utility
 
     public static function icon(): ?string
     {
-        return dirname(__DIR__) . '/icon.svg';
+        return dirname(__DIR__) . '/icon-mask.svg';
     }
 
     public static function contentHtml(): string
