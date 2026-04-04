@@ -8,6 +8,7 @@ use craft\flysystem\base\FlysystemFs;
 use craft\helpers\App;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemAdapter;
+use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 use ThomasVantuycom\FlysystemCloudinary\CloudinaryAdapter;
 
 class CloudinaryFs extends FlysystemFs
@@ -59,6 +60,22 @@ class CloudinaryFs extends FlysystemFs
                 'forceVersion' => false,
             ],
         ]);
+    }
+
+    public function write(string $path, string $contents, array $config = []): void
+    {
+        $publicId = pathinfo(basename($path), PATHINFO_FILENAME);
+        CloudinaryPlugin::getInstance()->syncGuard->markUploaded($publicId);
+
+        parent::write($path, $contents, $config);
+    }
+
+    public function writeFileFromStream(string $path, $stream, array $config = []): void
+    {
+        $publicId = pathinfo(basename($path), PATHINFO_FILENAME);
+        CloudinaryPlugin::getInstance()->syncGuard->markUploaded($publicId);
+
+        parent::writeFileFromStream($path, $stream, $config);
     }
 
     public function getCloudinaryFilesystem(): Filesystem

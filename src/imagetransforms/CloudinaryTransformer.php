@@ -7,6 +7,8 @@ use craft\base\imagetransforms\ImageTransformerInterface;
 use craft\elements\Asset;
 use craft\models\ImageTransform;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
+use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\ImageTransforms;
 
 class CloudinaryTransformer extends Component implements ImageTransformerInterface
@@ -32,6 +34,26 @@ class CloudinaryTransformer extends Component implements ImageTransformerInterfa
 
     public function invalidateAssetTransforms(Asset $asset): void
     {
+        $volume = $asset->getVolume();
+        $fs = $volume->getFs();
+
+        if (!$fs instanceof CloudinaryFs) {
+            $fs = $volume->getTransformFs();
+        }
+
+        if (!$fs instanceof CloudinaryFs) {
+            return;
+        }
+
+        try {
+            $publicId = pathinfo(basename($asset->getPath()), PATHINFO_FILENAME);
+            $fs->getClient()->uploadApi()->explicit($publicId, [
+                'type' => 'upload',
+                'invalidate' => true,
+            ]);
+        } catch (\Throwable $e) {
+            Cloudinary::log("Failed to invalidate transforms for asset {$asset->id}: {$e->getMessage()}", 'warning');
+        }
     }
 
     private function _mapPositionToGravity(string $position): string

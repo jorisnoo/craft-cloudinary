@@ -22,6 +22,13 @@ class AssetUploadAction extends BaseCloudinaryAction
         ?string $format,
         ?string $createdAt,
     ): void {
+        $cleanPublicId = basename($publicId);
+
+        if (Cloudinary::getInstance()->syncGuard->wasUploadedFromCraft($cleanPublicId)) {
+            Cloudinary::log("Skipping webhook upload for '{$cleanPublicId}' - already uploaded from Craft");
+            return;
+        }
+
         $this->removePathFromPublicId($publicId, $resourceType);
 
         $folder = (new FolderCreateAction($this->volumeId))->firstOrCreate($assetFolder);

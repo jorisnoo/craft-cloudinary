@@ -28,13 +28,10 @@ class CloudinaryUtility extends Utility
     public static function contentHtml(): string
     {
         $plugin = Cloudinary::getInstance();
-        $settings = $plugin->getSettings();
 
         return Craft::$app->getView()->renderTemplate('cloudinary/_utilities/cloudinary', [
             'volumes' => self::getCloudinaryVolumes(),
             'activity' => $plugin->activityLog->getRecent(),
-            'thumbnailCacheEnabled' => $settings->enableThumbnailCache,
-            'cacheStats' => $settings->enableThumbnailCache ? $plugin->thumbnailCache->getStats() : null,
         ]);
     }
 

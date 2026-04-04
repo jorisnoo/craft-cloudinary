@@ -4,22 +4,10 @@ namespace Noo\CraftCloudinary\migrations;
 
 use craft\db\Migration;
 
-class Install extends Migration
+class m260404_100000_create_webhook_log_table extends Migration
 {
     public function safeUp(): bool
     {
-        if (!$this->db->tableExists('{{%cloudinary_activity_log}}')) {
-            $this->createTable('{{%cloudinary_activity_log}}', [
-                'id' => $this->primaryKey(),
-                'volumeId' => $this->integer(),
-                'type' => $this->string(50)->notNull(),
-                'message' => $this->string(255)->notNull(),
-                'dateCreated' => $this->dateTime()->notNull(),
-            ]);
-
-            $this->createIndex(null, '{{%cloudinary_activity_log}}', ['dateCreated']);
-        }
-
         if (!$this->db->tableExists('{{%cloudinary_webhook_log}}')) {
             $this->createTable('{{%cloudinary_webhook_log}}', [
                 'id' => $this->primaryKey(),
@@ -40,7 +28,6 @@ class Install extends Migration
     public function safeDown(): bool
     {
         $this->dropTableIfExists('{{%cloudinary_webhook_log}}');
-        $this->dropTableIfExists('{{%cloudinary_activity_log}}');
 
         return true;
     }

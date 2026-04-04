@@ -8,38 +8,37 @@ use craft\base\Model;
 use craft\base\Plugin;
 use craft\console\Controller;
 use craft\elements\Asset;
-use craft\events\DefineBehaviorsEvent;
 use craft\events\DefineAssetThumbUrlEvent;
+use craft\events\DefineBehaviorsEvent;
 use craft\events\DefineConsoleActionsEvent;
-use craft\events\RegisterCacheOptionsEvent;
 use craft\events\RegisterComponentTypesEvent;
-use craft\helpers\Queue;
-use craft\helpers\UrlHelper;
 use craft\services\Assets;
 use craft\services\Fs;
 use craft\services\ImageTransforms;
 use craft\services\Utilities;
-use craft\utilities\ClearCaches;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
-use Noo\CraftCloudinary\console\controllers\ThumbnailCacheController;
 use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
-use Noo\CraftCloudinary\jobs\CacheThumbnail;
+use Noo\CraftCloudinary\listeners\AssetEventListener;
 use Noo\CraftCloudinary\models\Settings;
 use Noo\CraftCloudinary\services\ActivityLog;
-use Noo\CraftCloudinary\services\ThumbnailCache;
+use Noo\CraftCloudinary\services\CloudinaryApi;
+use Noo\CraftCloudinary\services\SyncGuard;
+use Noo\CraftCloudinary\services\SyncReconciler;
 use Noo\CraftCloudinary\utilities\CloudinaryUtility;
 use yii\log\FileTarget;
 
 /**
- * @property ThumbnailCache $thumbnailCache
  * @property ActivityLog $activityLog
+ * @property CloudinaryApi $cloudinaryApi
+ * @property SyncGuard $syncGuard
+ * @property SyncReconciler $syncReconciler
  */
 class Cloudinary extends Plugin
 {
-    public string $schemaVersion = '2.0.0';
+    public string $schemaVersion = '2.1.0';
 
     public bool $hasCpSettings = true;
 
@@ -48,8 +47,10 @@ class Cloudinary extends Plugin
         parent::init();
 
         $this->setComponents([
-            'thumbnailCache' => ThumbnailCache::class,
             'activityLog' => ActivityLog::class,
+            'cloudinaryApi' => CloudinaryApi::class,
+            'syncGuard' => SyncGuard::class,
+            'syncReconciler' => SyncReconciler::class,
         ]);
 
         Craft::$app->onInit(function() {
@@ -58,8 +59,9 @@ class Cloudinary extends Plugin
             $this->defineBehaviors();
             $this->registerConsoleCommands();
             $this->defineLogTarget();
-            $this->registerThumbnailCaching();
-            $this->registerCacheOptions();
+            $this->registerThumbnails();
+
+            AssetEventListener::register();
 
             if (Craft::$app->getRequest()->getIsCpRequest()) {
                 $this->registerUtilities();
@@ -87,10 +89,17 @@ class Cloudinary extends Plugin
             Controller::EVENT_DEFINE_ACTIONS,
             function(DefineConsoleActionsEvent $event) {
                 $event->actions['index'] = [
-                    'helpSummary' => 'Sync all Cloudinary asset volumes directly (no queue)',
+                    'helpSummary' => 'Sync all Cloudinary asset volumes via Flysystem listing',
                     'action' => function() {
                         $controller = Craft::$app->controller;
                         return $controller->actionIndex();
+                    },
+                ];
+                $event->actions['reconcile'] = [
+                    'helpSummary' => 'Reconcile Craft assets with Cloudinary via Search API',
+                    'action' => function() {
+                        $controller = Craft::$app->controller;
+                        return $controller->actionReconcile();
                     },
                 ];
             }
@@ -106,29 +115,6 @@ class Cloudinary extends Plugin
                     'action' => function($params) {
                         $controller = Craft::$app->controller;
                         $controller->actionScan($params);
-                    },
-                ];
-            }
-        );
-
-        // php craft cloudinary/thumbnail-cache/clear
-        // php craft cloudinary/thumbnail-cache/cleanup
-        Event::on(
-            ThumbnailCacheController::class,
-            Controller::EVENT_DEFINE_ACTIONS,
-            function(DefineConsoleActionsEvent $event) {
-                $event->actions['clear'] = [
-                    'helpSummary' => 'Clear the entire Cloudinary thumbnail cache',
-                    'action' => function() {
-                        $controller = Craft::$app->controller;
-                        $controller->actionClear();
-                    },
-                ];
-                $event->actions['cleanup'] = [
-                    'helpSummary' => 'Remove expired entries from the Cloudinary thumbnail cache',
-                    'action' => function() {
-                        $controller = Craft::$app->controller;
-                        $controller->actionCleanup();
                     },
                 ];
             }
@@ -171,12 +157,8 @@ class Cloudinary extends Plugin
         });
     }
 
-    private function registerThumbnailCaching(): void
+    private function registerThumbnails(): void
     {
-        if (!$this->getSettings()->enableThumbnailCache) {
-            return;
-        }
-
         Event::on(Assets::class, Assets::EVENT_DEFINE_THUMB_URL, function(DefineAssetThumbUrlEvent $event) {
             $asset = $event->asset;
             $volume = $asset->getVolume();
@@ -187,16 +169,7 @@ class Cloudinary extends Plugin
                 return;
             }
 
-            if ($this->thumbnailCache->has($asset->id, $event->width, $event->height)) {
-                $event->url = UrlHelper::actionUrl('cloudinary/thumbnails/serve', [
-                    'assetId' => $asset->id,
-                    'w' => $event->width,
-                    'h' => $event->height,
-                ]);
-                return;
-            }
-
-            $cloudinaryUrl = $asset->getCloudinaryUrl([
+            $event->url = $asset->getCloudinaryUrl([
                 'width' => $event->width,
                 'height' => $event->height,
                 'crop' => 'fill',
@@ -204,32 +177,6 @@ class Cloudinary extends Plugin
                 'fetch_format' => 'auto',
                 'quality' => 'auto',
             ]);
-
-            $event->url = $cloudinaryUrl;
-
-            if (!$this->thumbnailCache->tryMarkPending($asset->id, $event->width, $event->height)) {
-                return;
-            }
-
-            Queue::push(new CacheThumbnail(
-                assetId: $asset->id,
-                width: $event->width,
-                height: $event->height,
-                cloudinaryUrl: $cloudinaryUrl,
-            ));
-        });
-    }
-
-    private function registerCacheOptions(): void
-    {
-        Event::on(ClearCaches::class, ClearCaches::EVENT_REGISTER_CACHE_OPTIONS, function(RegisterCacheOptionsEvent $event) {
-            $event->options[] = [
-                'key' => 'cloudinary-thumbnails',
-                'label' => 'Cloudinary thumbnail cache',
-                'action' => function() {
-                    $this->thumbnailCache->invalidateAll();
-                },
-            ];
         });
     }
 

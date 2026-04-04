@@ -45,50 +45,11 @@
                     <td>{{ entry.dateCreated|datetime('short') }}</td>
                     <td><code>{{ entry.type }}</code></td>
                     <td>{{ entry.message }}</td>
-                    <td>{{ entry.volumeName ?? '—' }}</td>
+                    <td>{{ entry.volumeName ?? '---' }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 {% else %}
     <p class="light">{{ 'No recent activity.'|t('cloudinary') }}</p>
-{% endif %}
-
-<hr>
-
-<h2>Thumbnail Cache</h2>
-
-{% if thumbnailCacheEnabled %}
-    {% if cacheStats %}
-        {% set sizeKb = (cacheStats.size / 1024)|round(1) %}
-        {% set sizeMb = (cacheStats.size / 1048576)|round(1) %}
-        {% set sizeDisplay = cacheStats.size < 1048576 ? sizeKb ~ ' KB' : sizeMb ~ ' MB' %}
-        <p>
-            {{ '{count} cached thumbnail(s), {size} on disk.'|t('cloudinary', {
-                count: cacheStats.count|number,
-                size: sizeDisplay,
-            }) }}
-        </p>
-    {% endif %}
-
-    <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <form method="post" accept-charset="UTF-8">
-            {{ actionInput('cloudinary/cache/clear') }}
-            {{ redirectInput('utilities/cloudinary') }}
-            {{ csrfInput() }}
-            <button type="submit" class="btn">{{ 'Clear Thumbnail Cache'|t('cloudinary') }}</button>
-        </form>
-
-        <form method="post" accept-charset="UTF-8">
-            {{ actionInput('cloudinary/cache/cleanup') }}
-            {{ redirectInput('utilities/cloudinary') }}
-            {{ csrfInput() }}
-            <button type="submit" class="btn">{{ 'Cleanup Expired'|t('cloudinary') }}</button>
-        </form>
-    </div>
-{% else %}
-    <p class="light">{{ 'Thumbnail caching is disabled. Enable it in the {link}plugin settings{endlink}.'|t('cloudinary', {
-        link: '<a href="' ~ cpUrl('settings/plugins/cloudinary') ~ '">',
-        endlink: '</a>',
-    })|raw }}</p>
 {% endif %}

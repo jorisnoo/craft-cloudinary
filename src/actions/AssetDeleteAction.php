@@ -3,7 +3,6 @@
 namespace Noo\CraftCloudinary\actions;
 
 use Craft;
-use Noo\CraftCloudinary\Cloudinary;
 
 class AssetDeleteAction extends BaseCloudinaryAction
 {
@@ -20,10 +19,6 @@ class AssetDeleteAction extends BaseCloudinaryAction
             $asset = $this->queryAsset($publicId, $folderPath, $resourceType);
 
             if ($asset) {
-                if (Cloudinary::getInstance()->getSettings()->enableThumbnailCache) {
-                    Cloudinary::getInstance()->thumbnailCache->invalidateAsset($asset->id);
-                }
-
                 Craft::$app->getElements()->deleteElement($asset);
             }
         }

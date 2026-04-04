@@ -1,27 +1,5 @@
 <?php
 
-use Noo\CraftCloudinary\models\Settings;
-
-describe('Settings', function() {
-    it('has thumbnail cache disabled by default', function() {
-        $settings = new Settings();
-        expect($settings->enableThumbnailCache)->toBeFalse();
-    });
-
-    it('has a 7-day TTL by default', function() {
-        $settings = new Settings();
-        expect($settings->thumbnailCacheTtl)->toBe(604800);
-    });
-
-    it('defines validation rules', function() {
-        $settings = new Settings();
-        $rules = $settings->defineRules();
-
-        expect($rules)->toBeArray();
-        expect($rules)->not->toBeEmpty();
-    });
-});
-
 describe('ThumbnailCache file operations', function() {
     $cacheDir = sys_get_temp_dir() . '/cloudinary-thumbs-test-' . getmypid();
 
