@@ -25,7 +25,8 @@
         "name": "Cloudinary",
         "developer": "Joris Noordermeer",
         "documentationUrl": "https://github.com/jorisnoo/craft-cloudinary",
-        "class": "Noo\\CraftCloudinary\\Cloudinary"
+        "class": "Noo\\CraftCloudinary\\Cloudinary",
+        "packageName": "jorisnoo/craft-cloudinary"
     },
     "scripts": {
         "check-cs": "ecs check --ansi",
@@ -33,9 +34,6 @@
     },
     "config": {
         "sort-packages": true,
-        "platform": {
-            "php": "8.2"
-        },
         "allow-plugins": {
             "yiisoft/yii2-composer": true,
             "craftcms/plugin-installer": true,

@@ -2,6 +2,9 @@
 
 namespace Noo\CraftCloudinary\helpers;
 
+use craft\models\ImageTransform;
+use ReflectionClass;
+
 class ImageTransforms
 {
     public static function mapModeToCrop(string $mode, bool $upscale): string
@@ -17,17 +20,13 @@ class ImageTransforms
     public static function isNativeTransform(mixed $transform): bool
     {
         if (is_array($transform)) {
-            $nativeProperties = [
-                'width',
-                'height',
-                //'format', // allow changing the format in the url
-                'mode',
-                'position',
-                'interlace',
-                'quality',
-                'fill',
-                'upscale',
-            ];
+            $nativeProperties = array_map(
+                fn(\ReflectionProperty $property) => $property->getName(),
+                (new ReflectionClass(ImageTransform::class))->getProperties(\ReflectionProperty::IS_PUBLIC),
+            );
+
+            // Exclude format so Cloudinary handles format conversion via URL
+            $nativeProperties = array_diff($nativeProperties, ['format']);
 
             foreach ($transform as $key => $value) {
                 if (!in_array($key, $nativeProperties, true)) {

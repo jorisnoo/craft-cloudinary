@@ -12,6 +12,8 @@ use ThomasVantuycom\FlysystemCloudinary\CloudinaryAdapter;
 
 class CloudinaryFs extends FlysystemFs
 {
+    public bool $hasUrls = true;
+
     public string $cloudName = '';
 
     public string $apiKey = '';
@@ -21,6 +23,11 @@ class CloudinaryFs extends FlysystemFs
     public static function displayName(): string
     {
         return 'Cloudinary';
+    }
+
+    public function getShowHasUrlSetting(): bool
+    {
+        return false;
     }
 
     protected function defineRules(): array
