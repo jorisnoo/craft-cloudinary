@@ -30,7 +30,38 @@ class CloudinaryUtility extends Utility
         return Craft::$app->getView()->renderTemplate('cloudinary/_utilities/cloudinary', [
             'volumes' => self::getCloudinaryVolumes(),
             'webhooks' => self::getRecentWebhooks(),
+            'rateLimits' => self::getRateLimits(),
         ]);
+    }
+
+    public static function getRateLimits(): array
+    {
+        $limits = [];
+
+        foreach (Craft::$app->getVolumes()->getAllVolumes() as $volume) {
+            $fs = $volume->getFs();
+
+            if (!$fs instanceof CloudinaryFs) {
+                continue;
+            }
+
+            try {
+                $response = $fs->getClient()->adminApi()->ping();
+                $limits[] = [
+                    'volumeName' => $volume->name,
+                    'remaining' => $response->rateLimitRemaining,
+                    'allowed' => $response->rateLimitAllowed,
+                    'resetAt' => $response->rateLimitResetAt ? date('Y-m-d H:i:s T', $response->rateLimitResetAt) : null,
+                ];
+            } catch (\Throwable $e) {
+                $limits[] = [
+                    'volumeName' => $volume->name,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $limits;
     }
 
     private static function getRecentWebhooks(int $limit = 50): array

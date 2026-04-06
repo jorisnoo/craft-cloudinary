@@ -25,6 +25,37 @@
 
 <hr>
 
+<h2>API Rate Limits</h2>
+
+{% if rateLimits|length %}
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>{{ 'Volume'|t('cloudinary') }}</th>
+                <th>{{ 'Remaining'|t('cloudinary') }}</th>
+                <th>{{ 'Resets At'|t('cloudinary') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for limit in rateLimits %}
+                <tr>
+                    <td><strong>{{ limit.volumeName }}</strong></td>
+                    {% if limit.error is defined %}
+                        <td colspan="2" class="error">{{ limit.error }}</td>
+                    {% else %}
+                        <td>{{ limit.remaining|number }} / {{ limit.allowed|number }}</td>
+                        <td>{{ limit.resetAt ?? '---' }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="light">{{ 'No Cloudinary volumes configured.'|t('cloudinary') }}</p>
+{% endif %}
+
+<hr>
+
 <h2>Recent Webhooks</h2>
 
 {% if webhooks|length %}

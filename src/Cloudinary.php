@@ -16,6 +16,7 @@ use craft\services\Fs;
 use craft\services\ImageTransforms;
 use craft\services\Utilities;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
+use Noo\CraftCloudinary\console\controllers\ApiController;
 use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
 use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
@@ -71,6 +72,21 @@ class Cloudinary extends Plugin
                     'action' => function() {
                         $controller = Craft::$app->controller;
                         return $controller->actionIndex();
+                    },
+                ];
+            }
+        );
+
+        // php craft cloudinary/api/rate-limits
+        Event::on(
+            ApiController::class,
+            Controller::EVENT_DEFINE_ACTIONS,
+            function(DefineConsoleActionsEvent $event) {
+                $event->actions['rate-limits'] = [
+                    'helpSummary' => 'Show Cloudinary API rate limit status for all volumes',
+                    'action' => function() {
+                        $controller = Craft::$app->controller;
+                        return $controller->actionRateLimits();
                     },
                 ];
             }
