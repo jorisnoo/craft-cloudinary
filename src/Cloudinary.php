@@ -70,17 +70,10 @@ class Cloudinary extends Plugin
             Controller::EVENT_DEFINE_ACTIONS,
             function(DefineConsoleActionsEvent $event) {
                 $event->actions['index'] = [
-                    'helpSummary' => 'Sync all Cloudinary asset volumes via Flysystem listing',
+                    'helpSummary' => 'Reconcile all Cloudinary asset volumes via the Search API',
                     'action' => function() {
                         $controller = Craft::$app->controller;
                         return $controller->actionIndex();
-                    },
-                ];
-                $event->actions['reconcile'] = [
-                    'helpSummary' => 'Reconcile Craft assets with Cloudinary via Search API',
-                    'action' => function() {
-                        $controller = Craft::$app->controller;
-                        return $controller->actionReconcile();
                     },
                 ];
             }
