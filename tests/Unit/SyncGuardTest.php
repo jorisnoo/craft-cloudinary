@@ -9,12 +9,6 @@ describe('SyncGuard processing flags', function() {
         expect($guard->isProcessingWebhook())->toBeFalse();
     });
 
-    it('is not processing craft event by default', function() {
-        $guard = new SyncGuard();
-
-        expect($guard->isProcessingCraftEvent())->toBeFalse();
-    });
-
     it('sets webhook flag during callback', function() {
         $guard = new SyncGuard();
         $wasProcessing = false;
@@ -25,18 +19,6 @@ describe('SyncGuard processing flags', function() {
 
         expect($wasProcessing)->toBeTrue();
         expect($guard->isProcessingWebhook())->toBeFalse();
-    });
-
-    it('sets craft event flag during callback', function() {
-        $guard = new SyncGuard();
-        $wasProcessing = false;
-
-        $guard->whileProcessingCraftEvent(function() use ($guard, &$wasProcessing) {
-            $wasProcessing = $guard->isProcessingCraftEvent();
-        });
-
-        expect($wasProcessing)->toBeTrue();
-        expect($guard->isProcessingCraftEvent())->toBeFalse();
     });
 
     it('returns the callback result', function() {
@@ -58,14 +40,5 @@ describe('SyncGuard processing flags', function() {
         }
 
         expect($guard->isProcessingWebhook())->toBeFalse();
-    });
-
-    it('does not confuse webhook and craft event flags', function() {
-        $guard = new SyncGuard();
-
-        $guard->whileProcessingWebhook(function() use ($guard) {
-            expect($guard->isProcessingWebhook())->toBeTrue();
-            expect($guard->isProcessingCraftEvent())->toBeFalse();
-        });
     });
 });

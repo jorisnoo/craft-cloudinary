@@ -21,14 +21,12 @@ use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use Noo\CraftCloudinary\listeners\AssetEventListener;
-use Noo\CraftCloudinary\services\CloudinaryApi;
 use Noo\CraftCloudinary\services\SyncGuard;
 use Noo\CraftCloudinary\services\SyncReconciler;
 use Noo\CraftCloudinary\utilities\CloudinaryUtility;
 use yii\log\FileTarget;
 
 /**
- * @property CloudinaryApi $cloudinaryApi
  * @property SyncGuard $syncGuard
  * @property SyncReconciler $syncReconciler
  */
@@ -41,7 +39,6 @@ class Cloudinary extends Plugin
         parent::init();
 
         $this->setComponents([
-            'cloudinaryApi' => CloudinaryApi::class,
             'syncGuard' => SyncGuard::class,
             'syncReconciler' => SyncReconciler::class,
         ]);
