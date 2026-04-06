@@ -91,7 +91,7 @@ class SyncReconciler extends Component
 
         do {
             $search = $client->searchApi()
-                ->expression('*')
+                ->expression('')
                 ->maxResults(500)
                 ->sortBy('created_at', 'desc');
 
