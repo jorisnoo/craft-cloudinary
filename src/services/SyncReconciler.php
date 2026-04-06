@@ -157,19 +157,22 @@ class SyncReconciler extends Component
     private function hasMetadataChanged(array $craftAsset, array $cloudinaryResource): bool
     {
         $cloudinarySize = $cloudinaryResource['bytes'] ?? null;
-        $cloudinaryWidth = $cloudinaryResource['width'] ?? null;
-        $cloudinaryHeight = $cloudinaryResource['height'] ?? null;
 
         if ($cloudinarySize !== null && (int) $craftAsset['size'] !== $cloudinarySize) {
             return true;
         }
 
-        if ($cloudinaryWidth !== null && (int) $craftAsset['width'] !== $cloudinaryWidth) {
-            return true;
-        }
+        if (($cloudinaryResource['resource_type'] ?? '') === 'image') {
+            $cloudinaryWidth = $cloudinaryResource['width'] ?? null;
+            $cloudinaryHeight = $cloudinaryResource['height'] ?? null;
 
-        if ($cloudinaryHeight !== null && (int) $craftAsset['height'] !== $cloudinaryHeight) {
-            return true;
+            if ($cloudinaryWidth !== null && (int) $craftAsset['width'] !== $cloudinaryWidth) {
+                return true;
+            }
+
+            if ($cloudinaryHeight !== null && (int) $craftAsset['height'] !== $cloudinaryHeight) {
+                return true;
+            }
         }
 
         return false;
@@ -187,12 +190,14 @@ class SyncReconciler extends Component
             $asset->size = $cloudinaryResource['bytes'];
         }
 
-        if (isset($cloudinaryResource['width'])) {
-            $asset->width = $cloudinaryResource['width'];
-        }
+        if (($cloudinaryResource['resource_type'] ?? '') === 'image') {
+            if (isset($cloudinaryResource['width'])) {
+                $asset->width = $cloudinaryResource['width'];
+            }
 
-        if (isset($cloudinaryResource['height'])) {
-            $asset->height = $cloudinaryResource['height'];
+            if (isset($cloudinaryResource['height'])) {
+                $asset->height = $cloudinaryResource['height'];
+            }
         }
 
         $asset->setScenario(Asset::SCENARIO_INDEX);

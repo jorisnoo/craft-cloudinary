@@ -96,28 +96,35 @@ describe('SyncReconciler metadata change detection', function() {
 
     it('detects size changes', function() {
         $craft = ['size' => '1024', 'width' => '800', 'height' => '600'];
-        $cloudinary = ['bytes' => 2048, 'width' => 800, 'height' => 600];
+        $cloudinary = ['resource_type' => 'image', 'bytes' => 2048, 'width' => 800, 'height' => 600];
 
         expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeTrue();
     });
 
-    it('detects width changes', function() {
+    it('detects width changes for images', function() {
         $craft = ['size' => '1024', 'width' => '800', 'height' => '600'];
-        $cloudinary = ['bytes' => 1024, 'width' => 1600, 'height' => 600];
+        $cloudinary = ['resource_type' => 'image', 'bytes' => 1024, 'width' => 1600, 'height' => 600];
 
         expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeTrue();
     });
 
-    it('detects height changes', function() {
+    it('detects height changes for images', function() {
         $craft = ['size' => '1024', 'width' => '800', 'height' => '600'];
-        $cloudinary = ['bytes' => 1024, 'width' => 800, 'height' => 1200];
+        $cloudinary = ['resource_type' => 'image', 'bytes' => 1024, 'width' => 800, 'height' => 1200];
 
         expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeTrue();
+    });
+
+    it('ignores width/height changes for non-image resources', function() {
+        $craft = ['size' => '1024', 'width' => null, 'height' => null];
+        $cloudinary = ['resource_type' => 'video', 'bytes' => 1024, 'width' => 1920, 'height' => 1080];
+
+        expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeFalse();
     });
 
     it('returns false when nothing changed', function() {
         $craft = ['size' => '1024', 'width' => '800', 'height' => '600'];
-        $cloudinary = ['bytes' => 1024, 'width' => 800, 'height' => 600];
+        $cloudinary = ['resource_type' => 'image', 'bytes' => 1024, 'width' => 800, 'height' => 600];
 
         expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeFalse();
     });
