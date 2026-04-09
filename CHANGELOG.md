@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.0) (2026-04-09)
+
+### Features
+
+- add Cloudinary volume sync functionality ([e980844](https://github.com/jorisnoo/craft-cloudinary/commit/e980844e279f3a75376dd912530b024fc329181f))
+- add Cloudinary API rate limit monitoring command and utility ([ef274e2](https://github.com/jorisnoo/craft-cloudinary/commit/ef274e2d81a87f65157e914f945cadcd477a7b3e))
+- add icon-mask.svg asset for cloudinary utility ([5f199a2](https://github.com/jorisnoo/craft-cloudinary/commit/5f199a252bad5bb0eb31482c6f648e665a209b8a))
+- add activity logging and cloudinary utility page ([1202e0d](https://github.com/jorisnoo/craft-cloudinary/commit/1202e0d2e61aec6a1b670bc0a965cc9dc71c2ba5))
+
+### Bug Fixes
+
+- only compare dimensions for image resources in metadata reconciliation ([2a7f21a](https://github.com/jorisnoo/craft-cloudinary/commit/2a7f21ac7b2d051ec6216c1e762db258bfc6b4c7))
+
+### Code Refactoring
+
+- remove Illuminate Str dependency and simplify path formatting ([65764be](https://github.com/jorisnoo/craft-cloudinary/commit/65764be3f38880e25f9b416193bb5afaab52f0ce))
+- remove CloudinaryApi service and craft event sync handling ([db84ed9](https://github.com/jorisnoo/craft-cloudinary/commit/db84ed9f8d44f1ff5c47b7d3b6ed8158b039fc4d))
+- consolidate sync and reconcile actions into single search api workflow ([1cb7785](https://github.com/jorisnoo/craft-cloudinary/commit/1cb77856c661820aab9504b36378982665227a1e))
+- remove activity log service in favor of webhook log ([0047490](https://github.com/jorisnoo/craft-cloudinary/commit/0047490206111046a3933a50da6deb3ea96202fc))
+- replace thumbnail caching with webhook-based asset reconciliation ([7e61bf0](https://github.com/jorisnoo/craft-cloudinary/commit/7e61bf0ff9aa1687ad671c175271474b8ebd7b37))
+- simplify image transform detection using reflection and update plugin configuration ([d3104a5](https://github.com/jorisnoo/craft-cloudinary/commit/d3104a5f9ce5305f74e22ce200c7fd98dffc17a3))
+
+### Documentation
+
+- update sync command documentation and fix search expression ([e6b68a1](https://github.com/jorisnoo/craft-cloudinary/commit/e6b68a19cae50f14f7f1ca7f7715784574bc1614))
 ## [2.0.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.0.0) (2026-03-31)
 
 ### ⚠ BREAKING CHANGES
