@@ -4,7 +4,6 @@ namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use craft\elements\Asset;
-use Illuminate\Support\Str;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 
 abstract class BaseCloudinaryAction
@@ -15,11 +14,9 @@ abstract class BaseCloudinaryAction
 
     public function formatPath($path): ?string
     {
-        $path = Str::of($path)
-            ->trim('/.')
-            ->whenNotEmpty(fn($string) => $string->append('/'));
+        $path = trim((string) $path, '/.');
 
-        return $path->isEmpty() ? null : (string) $path;
+        return $path === '' ? null : $path . '/';
     }
 
     public function formatFilename(string $publicId, string $resourceType, string $format = '*'): string
