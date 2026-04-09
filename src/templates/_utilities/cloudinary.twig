@@ -1,7 +1,18 @@
-<h2>Volumes</h2>
+<div class="flex flex-nowrap" style="justify-content: space-between; align-items: center;">
+    <h2 style="margin: 0;">{{ 'Volumes'|t('cloudinary') }}</h2>
+
+    {% if volumes|length %}
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('cloudinary/sync') }}
+            {{ redirectInput('utilities/cloudinary') }}
+            <button type="submit" class="btn submit">{{ 'Sync now'|t('cloudinary') }}</button>
+        </form>
+    {% endif %}
+</div>
 
 {% if volumes|length %}
-    <table class="data fullwidth">
+    <table class="data fullwidth" style="margin-top: 14px;">
         <thead>
             <tr>
                 <th>{{ 'Volume'|t('cloudinary') }}</th>
