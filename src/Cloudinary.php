@@ -56,6 +56,7 @@ class Cloudinary extends Plugin
 
             if (Craft::$app->getRequest()->getIsCpRequest()) {
                 $this->registerUtilities();
+                $this->stripExternalUpdateNotifications();
             }
         });
     }
@@ -106,6 +107,27 @@ class Cloudinary extends Plugin
                 ];
             }
         );
+    }
+
+    private function stripExternalUpdateNotifications(): void
+    {
+        $cache = Craft::$app->getCache();
+        $cacheKey = Craft::$app->getUpdates()->cacheKey;
+
+        $cached = $cache->get($cacheKey);
+
+        if ($cached === false || !isset($cached['plugins'][$this->id])) {
+            return;
+        }
+
+        $packageName = $cached['plugins'][$this->id]['packageName'] ?? null;
+
+        if ($packageName === null || $packageName === $this->packageName) {
+            return;
+        }
+
+        unset($cached['plugins'][$this->id]);
+        $cache->set($cacheKey, $cached);
     }
 
     private function registerUtilities(): void
