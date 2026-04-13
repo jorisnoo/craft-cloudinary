@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.1) (2026-04-13)
+
+### Features
+
+- add dry-run and force flags with deletion safeguards to sync ([feb23da](https://github.com/jorisnoo/craft-cloudinary/commit/feb23dacfa603cf3d24ca486b120d77a5311f65e))
+
+### Bug Fixes
+
+- strip external Cloudinary package update notifications ([09983ee](https://github.com/jorisnoo/craft-cloudinary/commit/09983eebc10c4c7d75b6412a2db5af8225948350))
 ## [2.1.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.0) (2026-04-09)
 
 ### Features
