@@ -17,6 +17,7 @@ use craft\services\ImageTransforms;
 use craft\services\Utilities;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 use Noo\CraftCloudinary\console\controllers\ApiController;
+use Noo\CraftCloudinary\console\controllers\RecoverController;
 use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
 use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
@@ -103,6 +104,29 @@ class Cloudinary extends Plugin
                     'action' => function($params) {
                         $controller = Craft::$app->controller;
                         $controller->actionScan($params);
+                    },
+                ];
+            }
+        );
+
+        // php craft cloudinary/recover/relations
+        // php craft cloudinary/recover/hyper
+        Event::on(
+            RecoverController::class,
+            Controller::EVENT_DEFINE_ACTIONS,
+            function(DefineConsoleActionsEvent $event) {
+                $event->actions['relations'] = [
+                    'helpSummary' => 'Remap entry relations from soft-deleted Cloudinary assets to their re-created live counterparts',
+                    'action' => function() {
+                        $controller = Craft::$app->controller;
+                        return $controller->actionRelations();
+                    },
+                ];
+                $event->actions['hyper'] = [
+                    'helpSummary' => 'Rewrite asset IDs embedded in Hyper field JSON from soft-deleted to live counterparts',
+                    'action' => function() {
+                        $controller = Craft::$app->controller;
+                        return $controller->actionHyper();
                     },
                 ];
             }
