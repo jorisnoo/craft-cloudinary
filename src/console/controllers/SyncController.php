@@ -4,6 +4,7 @@ namespace Noo\CraftCloudinary\console\controllers;
 
 use Craft;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\exceptions\ReconciliationAbortedException;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -39,15 +40,18 @@ class SyncController extends Controller
             $this->stdout("DRY RUN — no changes will be written.\n");
         }
 
+        $aborts = 0;
+
         foreach ($volumes as $volume) {
             $this->stdout("Syncing volume \"{$volume->name}\"...\n");
 
-            $stats = $reconciler->reconcile($volume->id, $this->dryRun, $this->force);
-
-            if (!empty($stats['aborted'])) {
-                $this->stderr("  ABORTED — safety guard tripped. Check logs. Re-run with --force to override.\n");
-                if (isset($stats['wouldDelete'])) {
-                    $this->stderr("  Would have deleted: {$stats['wouldDelete']}\n");
+            try {
+                $stats = $reconciler->reconcile($volume->id, $this->dryRun, $this->force);
+            } catch (ReconciliationAbortedException $e) {
+                $aborts++;
+                $this->stderr("  ABORTED ({$e->reason}): would delete {$e->wouldDelete}/{$e->craftCount}. Check logs for asset IDs.\n");
+                if ($e->reason === ReconciliationAbortedException::REASON_DELETION_RATIO) {
+                    $this->stderr("  Re-run with --force to override the ratio guard.\n");
                 }
                 continue;
             }
@@ -56,6 +60,11 @@ class SyncController extends Controller
             $this->stdout("  Deleted: {$stats['deleted']}\n");
             $this->stdout("  Updated: {$stats['updated']}\n");
             $this->stdout("  Unchanged: {$stats['unchanged']}\n");
+        }
+
+        if ($aborts > 0) {
+            $this->stderr("Sync finished with {$aborts} aborted volume(s).\n");
+            return ExitCode::SOFTWARE;
         }
 
         $this->stdout("Sync complete.\n");

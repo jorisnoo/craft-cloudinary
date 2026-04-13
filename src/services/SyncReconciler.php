@@ -9,6 +9,7 @@ use craft\elements\Asset;
 use craft\helpers\Assets;
 use Noo\CraftCloudinary\actions\FolderCreateAction;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\exceptions\ReconciliationAbortedException;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use yii\base\Component;
 
@@ -40,16 +41,18 @@ class SyncReconciler extends Component
             'deleted' => 0,
             'updated' => 0,
             'unchanged' => 0,
-            'aborted' => false,
         ];
 
         if (count($cloudinaryAssets) === 0 && count($craftAssets) > 0) {
-            Cloudinary::log(
-                "Reconciler: aborted for volume {$volumeId}: Cloudinary returned 0 assets but Craft has " . count($craftAssets) . ". Refusing to delete.",
-                'error'
+            $message = "Reconciler: aborted for volume {$volumeId}: Cloudinary returned 0 assets but Craft has " . count($craftAssets) . ". Refusing to delete.";
+            Cloudinary::log($message, 'error');
+            throw new ReconciliationAbortedException(
+                $message,
+                $volumeId,
+                ReconciliationAbortedException::REASON_EMPTY_RESPONSE,
+                count($craftAssets),
+                count($craftAssets),
             );
-            $stats['aborted'] = true;
-            return $stats;
         }
 
         $cloudinaryIndex = [];
@@ -76,21 +79,24 @@ class SyncReconciler extends Component
 
         if (!$force && $deleteRatio > self::MAX_DELETE_RATIO) {
             $ids = array_column($toDelete, 'id');
-            Cloudinary::log(
-                sprintf(
-                    "Reconciler: aborted for volume %d: would delete %d/%d (%.1f%%) Craft assets, exceeding %.0f%% threshold. Asset IDs: %s",
-                    $volumeId,
-                    count($toDelete),
-                    $craftCount,
-                    $deleteRatio * 100,
-                    self::MAX_DELETE_RATIO * 100,
-                    implode(',', $ids)
-                ),
-                'error'
+            $message = sprintf(
+                "Reconciler: aborted for volume %d: would delete %d/%d (%.1f%%) Craft assets, exceeding %.0f%% threshold. Asset IDs: %s",
+                $volumeId,
+                count($toDelete),
+                $craftCount,
+                $deleteRatio * 100,
+                self::MAX_DELETE_RATIO * 100,
+                implode(',', $ids)
             );
-            $stats['aborted'] = true;
-            $stats['wouldDelete'] = count($toDelete);
-            return $stats;
+            Cloudinary::log($message, 'error');
+            throw new ReconciliationAbortedException(
+                $message,
+                $volumeId,
+                ReconciliationAbortedException::REASON_DELETION_RATIO,
+                count($toDelete),
+                $craftCount,
+                $ids,
+            );
         }
 
         // Assets in Cloudinary but not in Craft -> create

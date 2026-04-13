@@ -6,7 +6,13 @@
             {{ csrfInput() }}
             {{ actionInput('cloudinary/sync') }}
             {{ redirectInput('utilities/cloudinary') }}
-            <button type="submit" class="btn submit">{{ 'Sync now'|t('cloudinary') }}</button>
+            <div class="btngroup">
+                <button type="submit" class="btn submit">{{ 'Sync now'|t('cloudinary') }}</button>
+                <button type="submit" name="force" value="1" class="btn"
+                        onclick="return confirm({{ 'Force sync bypasses the safety threshold and may delete Craft assets missing from Cloudinary. Continue?'|t('cloudinary')|json_encode }});">
+                    {{ 'Force sync'|t('cloudinary') }}
+                </button>
+            </div>
         </form>
     {% endif %}
 </div>

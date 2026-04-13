@@ -16,6 +16,8 @@ class SyncController extends Controller
         $this->requirePostRequest();
         $this->requirePermission('utility:cloudinary');
 
+        $force = (bool) Craft::$app->getRequest()->getBodyParam('force', false);
+
         $queued = 0;
 
         foreach (Craft::$app->getVolumes()->getAllVolumes() as $volume) {
@@ -23,7 +25,7 @@ class SyncController extends Controller
                 continue;
             }
 
-            Queue::push(new SyncVolume($volume->id));
+            Queue::push(new SyncVolume($volume->id, $force));
             $queued++;
         }
 
@@ -31,6 +33,10 @@ class SyncController extends Controller
             return $this->asFailure(Craft::t('cloudinary', 'No Cloudinary volumes to sync.'));
         }
 
-        return $this->asSuccess(Craft::t('cloudinary', 'Cloudinary sync queued.'));
+        $message = $force
+            ? Craft::t('cloudinary', 'Cloudinary sync queued (forced).')
+            : Craft::t('cloudinary', 'Cloudinary sync queued.');
+
+        return $this->asSuccess($message);
     }
 }
