@@ -10,6 +10,20 @@ use yii\console\ExitCode;
 
 class SyncController extends Controller
 {
+    public bool $dryRun = false;
+
+    public bool $force = false;
+
+    public function options($actionID): array
+    {
+        return array_merge(parent::options($actionID), ['dryRun', 'force']);
+    }
+
+    public function optionAliases(): array
+    {
+        return array_merge(parent::optionAliases(), ['d' => 'dryRun', 'f' => 'force']);
+    }
+
     public function actionIndex(): int
     {
         $volumes = $this->getCloudinaryVolumes();
@@ -21,10 +35,22 @@ class SyncController extends Controller
 
         $reconciler = Cloudinary::getInstance()->syncReconciler;
 
+        if ($this->dryRun) {
+            $this->stdout("DRY RUN — no changes will be written.\n");
+        }
+
         foreach ($volumes as $volume) {
             $this->stdout("Syncing volume \"{$volume->name}\"...\n");
 
-            $stats = $reconciler->reconcile($volume->id);
+            $stats = $reconciler->reconcile($volume->id, $this->dryRun, $this->force);
+
+            if (!empty($stats['aborted'])) {
+                $this->stderr("  ABORTED — safety guard tripped. Check logs. Re-run with --force to override.\n");
+                if (isset($stats['wouldDelete'])) {
+                    $this->stderr("  Would have deleted: {$stats['wouldDelete']}\n");
+                }
+                continue;
+            }
 
             $this->stdout("  Created: {$stats['created']}\n");
             $this->stdout("  Deleted: {$stats['deleted']}\n");

@@ -14,7 +14,9 @@ use yii\base\Component;
 
 class SyncReconciler extends Component
 {
-    public function reconcile(int $volumeId): array
+    private const MAX_DELETE_RATIO = 0.10;
+
+    public function reconcile(int $volumeId, bool $dryRun = false, bool $force = false): array
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 
@@ -38,7 +40,17 @@ class SyncReconciler extends Component
             'deleted' => 0,
             'updated' => 0,
             'unchanged' => 0,
+            'aborted' => false,
         ];
+
+        if (count($cloudinaryAssets) === 0 && count($craftAssets) > 0) {
+            Cloudinary::log(
+                "Reconciler: aborted for volume {$volumeId}: Cloudinary returned 0 assets but Craft has " . count($craftAssets) . ". Refusing to delete.",
+                'error'
+            );
+            $stats['aborted'] = true;
+            return $stats;
+        }
 
         $cloudinaryIndex = [];
         foreach ($cloudinaryAssets as $resource) {
@@ -52,12 +64,42 @@ class SyncReconciler extends Component
             $craftIndex[$key] = $craftAsset;
         }
 
+        $toDelete = [];
+        foreach ($craftIndex as $key => $craftAsset) {
+            if (!isset($cloudinaryIndex[$key])) {
+                $toDelete[] = $craftAsset;
+            }
+        }
+
+        $craftCount = count($craftIndex);
+        $deleteRatio = $craftCount > 0 ? count($toDelete) / $craftCount : 0.0;
+
+        if (!$force && $deleteRatio > self::MAX_DELETE_RATIO) {
+            $ids = array_column($toDelete, 'id');
+            Cloudinary::log(
+                sprintf(
+                    "Reconciler: aborted for volume %d: would delete %d/%d (%.1f%%) Craft assets, exceeding %.0f%% threshold. Asset IDs: %s",
+                    $volumeId,
+                    count($toDelete),
+                    $craftCount,
+                    $deleteRatio * 100,
+                    self::MAX_DELETE_RATIO * 100,
+                    implode(',', $ids)
+                ),
+                'error'
+            );
+            $stats['aborted'] = true;
+            $stats['wouldDelete'] = count($toDelete);
+            return $stats;
+        }
+
         // Assets in Cloudinary but not in Craft -> create
         foreach ($cloudinaryIndex as $key => $resource) {
             if (isset($craftIndex[$key])) {
-                // Check for metadata differences
                 if ($this->hasMetadataChanged($craftIndex[$key], $resource)) {
-                    $this->updateCraftAsset($craftIndex[$key], $resource);
+                    if (!$dryRun) {
+                        $this->updateCraftAsset($craftIndex[$key], $resource);
+                    }
                     $stats['updated']++;
                 } else {
                     $stats['unchanged']++;
@@ -65,49 +107,66 @@ class SyncReconciler extends Component
                 continue;
             }
 
-            $this->createCraftAsset($volumeId, $resource);
+            if (!$dryRun) {
+                $this->createCraftAsset($volumeId, $resource);
+            }
             $stats['created']++;
         }
 
         // Assets in Craft but not in Cloudinary -> delete
-        foreach ($craftIndex as $key => $craftAsset) {
-            if (!isset($cloudinaryIndex[$key])) {
+        foreach ($toDelete as $craftAsset) {
+            if (!$dryRun) {
                 $asset = Asset::find()->id($craftAsset['id'])->one();
                 if ($asset) {
                     $asset->keepFileOnDelete = true;
                     Craft::$app->getElements()->deleteElement($asset);
-                    $stats['deleted']++;
                 }
             }
+            $stats['deleted']++;
         }
 
         return $stats;
     }
 
+    private const RESOURCE_TYPES = ['image', 'video', 'raw'];
+
     private function fetchAllCloudinaryAssets($client): array
     {
         $assets = [];
-        $nextCursor = null;
 
-        do {
-            $search = $client->searchApi()
-                ->expression('')
-                ->maxResults(500)
-                ->sortBy('created_at', 'desc');
+        foreach (self::RESOURCE_TYPES as $resourceType) {
+            $nextCursor = null;
 
-            if ($nextCursor !== null) {
-                $search->nextCursor($nextCursor);
-            }
+            do {
+                $options = [
+                    'resource_type' => $resourceType,
+                    'max_results' => 500,
+                    'fields' => 'asset_folder,display_name',
+                ];
 
-            $result = $search->execute();
-            $resultArray = $result->getArrayCopy();
+                if ($nextCursor !== null) {
+                    $options['next_cursor'] = $nextCursor;
+                }
 
-            foreach ($resultArray['resources'] ?? [] as $resource) {
-                $assets[] = $resource;
-            }
+                try {
+                    $result = $client->adminApi()->assets($options);
+                } catch (\Throwable $e) {
+                    Cloudinary::log(
+                        "Reconciler: Admin API listing failed for resource_type={$resourceType}: {$e->getMessage()}",
+                        'error'
+                    );
+                    throw $e;
+                }
 
-            $nextCursor = $resultArray['next_cursor'] ?? null;
-        } while ($nextCursor !== null);
+                $resultArray = $result->getArrayCopy();
+
+                foreach ($resultArray['resources'] ?? [] as $resource) {
+                    $assets[] = $resource;
+                }
+
+                $nextCursor = $resultArray['next_cursor'] ?? null;
+            } while ($nextCursor !== null);
+        }
 
         return $assets;
     }
