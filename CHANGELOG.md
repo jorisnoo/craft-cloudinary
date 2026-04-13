@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.2) (2026-04-13)
+
+### Features
+
+- add recover commands for remapping deleted asset references ([6f48445](https://github.com/jorisnoo/craft-cloudinary/commit/6f484453b19737d593bdbab511e76cb75b0b4362))
+- throw on reconciler abort and add force sync from utility panel ([891e615](https://github.com/jorisnoo/craft-cloudinary/commit/891e615c1f0d803d805b6eed648b9bdb7bb7511d))
+
+### Reverts
+
+- remove cloudinary/recover commands ([f51957a](https://github.com/jorisnoo/craft-cloudinary/commit/f51957aaff48a2385b6e2c30df8b98a46f9d3c13))
 ## [2.1.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.1) (2026-04-13)
 
 ### Features
