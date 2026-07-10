@@ -2,8 +2,6 @@
 
 namespace Noo\CraftCloudinary\actions;
 
-use craft\records\VolumeFolder;
-
 class FolderDeleteAction extends BaseCloudinaryAction
 {
     /**
@@ -14,13 +12,18 @@ class FolderDeleteAction extends BaseCloudinaryAction
         $folderPath = $this->formatPath($folderPath);
 
         // Don't delete the base folder
-        if ($folderPath === null) {
+        if ($folderPath === '') {
             return;
         }
 
-        VolumeFolder::deleteAll([
+        $assets = $this->assetsService();
+        $folder = $assets->findFolder([
             'volumeId' => $this->volumeId,
             'path' => $folderPath,
         ]);
+
+        if ($folder !== null && $folder->id !== null) {
+            $assets->deleteFoldersByIds($folder->id, false);
+        }
     }
 }

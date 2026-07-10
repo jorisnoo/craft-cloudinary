@@ -107,7 +107,6 @@ class Cloudinary extends Plugin
                 ];
             }
         );
-
     }
 
     private function stripExternalUpdateNotifications(): void

@@ -10,6 +10,7 @@ use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\ImageTransforms;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use yii\base\Behavior;
+use yii\base\InvalidConfigException;
 
 class CloudinaryUrlBehavior extends Behavior
 {
@@ -81,10 +82,16 @@ class CloudinaryUrlBehavior extends Behavior
         $hasCloudinaryFs = $fs instanceof CloudinaryFs;
         $fsWithConfig = $hasCloudinaryFs ? $fs : $transformFs;
 
-        $publicId = $hasCloudinaryFs ? $asset->getPath() : $asset->getUrl();
+        if ($hasCloudinaryFs) {
+            // Public IDs should never contain the path in dynamic folder mode.
+            $publicId = basename($asset->getPath());
+        } else {
+            $publicId = $asset->getUrl();
 
-        // public ids should never contain the path -> dynamic folder mode
-        $publicId = basename($publicId);
+            if ($publicId === null || $publicId === '') {
+                throw new InvalidConfigException('Cloudinary fetch transforms require the source filesystem to provide a public asset URL.');
+            }
+        }
 
         $resourceType = $this->_getResourceType();
 
@@ -94,16 +101,16 @@ class CloudinaryUrlBehavior extends Behavior
         $client = $fsWithConfig->getClient();
         $resource = $client->{$resourceType}($publicId);
 
+        if (!$hasCloudinaryFs) {
+            $resource->deliveryType("fetch");
+        }
+
         if ($transform !== null) {
             $resource->addTransformation($transform);
 
             if (isset($transform['format'])) {
-                $resource->extension($transform['format']);
+                $resource->setFormat($transform['format']);
             }
-        }
-
-        if (!$hasCloudinaryFs) {
-            $resource->deliveryType("fetch");
         }
 
         return $resource->toUrl();

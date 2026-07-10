@@ -2,7 +2,7 @@
 
 namespace Noo\CraftCloudinary\actions;
 
-use craft\records\VolumeFolder;
+use craft\models\VolumeFolder;
 
 class FolderRenameAction extends BaseCloudinaryAction
 {
@@ -15,12 +15,17 @@ class FolderRenameAction extends BaseCloudinaryAction
         $fromPath = $this->formatPath($fromPath);
         $toPath = $this->formatPath($toPath);
 
-        $existingTargetFolder = VolumeFolder::findOne([
+        if ($fromPath === '' || $toPath === '') {
+            throw new \InvalidArgumentException('The volume root folder cannot be moved or renamed');
+        }
+
+        $assets = $this->assetsService();
+        $existingTargetFolder = $assets->findFolder([
             'volumeId' => $this->volumeId,
             'path' => $toPath,
         ]);
 
-        $oldFolder = VolumeFolder::findOne([
+        $oldFolder = $assets->findFolder([
             'volumeId' => $this->volumeId,
             'path' => $fromPath,
         ]);
@@ -28,27 +33,42 @@ class FolderRenameAction extends BaseCloudinaryAction
         if ($existingTargetFolder && $oldFolder) {
             // If both a "from" and a "to" path already exists,
             // delete the target and rename the "from" to the new destination (below)
-            $existingTargetFolder->delete();
-        } elseif ($existingTargetFolder && !$oldFolder) {
+            $assets->deleteFoldersByIds($existingTargetFolder->id, false);
+        } elseif ($existingTargetFolder) {
             // If only the target already exists but no "from" folder, don't do anything
             return $existingTargetFolder;
         }
 
         // If the "from" folder exists, but no target folder, move the existing one
         if ($oldFolder) {
+            $descendantFolders = $assets->getAllDescendantFolders($oldFolder, withParent: false);
+
             // Get the parent folder by passing the dirname of the new folder destination
-            $newParentFolder = (new FolderCreateAction($this->volumeId))
-                ->firstOrCreate(dirname($toPath));
+            $newParentFolder = $this->firstOrCreateFolder(dirname($toPath));
 
             $oldFolder->path = $toPath;
-            $oldFolder->name = basename($toPath);
+            $oldFolder->name = basename(rtrim($toPath, '/'));
             $oldFolder->parentId = $newParentFolder->id;
-            $oldFolder->save();
+            $assets->storeFolderRecord($oldFolder);
+
+            foreach ($descendantFolders as $descendantFolder) {
+                if (!str_starts_with((string) $descendantFolder->path, $fromPath)) {
+                    continue;
+                }
+
+                $descendantFolder->path = $toPath . substr($descendantFolder->path, strlen($fromPath));
+                $assets->storeFolderRecord($descendantFolder);
+            }
 
             return $oldFolder;
         }
 
         // If it doesn't, create it
-        return (new FolderCreateAction($this->volumeId))->firstOrCreate($toPath);
+        return $this->firstOrCreateFolder($toPath);
+    }
+
+    protected function firstOrCreateFolder(?string $folderPath): VolumeFolder
+    {
+        return (new FolderCreateAction($this->volumeId))->firstOrCreate($folderPath);
     }
 }

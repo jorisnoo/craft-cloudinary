@@ -3,7 +3,12 @@
 namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
+use Craft;
 use craft\elements\Asset;
+use craft\elements\db\AssetQuery;
+use craft\services\Assets;
+use craft\services\Volumes;
+use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 
 abstract class BaseCloudinaryAction
@@ -12,18 +17,18 @@ abstract class BaseCloudinaryAction
     {
     }
 
-    public function formatPath($path): ?string
+    public function formatPath($path): string
     {
         $path = trim((string) $path, '/.');
 
-        return $path === '' ? null : $path . '/';
+        return $path === '' ? '' : $path . '/';
     }
 
-    public function formatFilename(string $publicId, string $resourceType, string $format = '*'): string
+    public function formatFilename(string $publicId, string $resourceType, ?string $format = null): string
     {
         $filename = basename($publicId);
 
-        if ($resourceType !== AssetType::RAW) {
+        if ($resourceType !== AssetType::RAW && $format !== null && $format !== '') {
             $filename .= ".{$format}";
         }
 
@@ -32,12 +37,26 @@ abstract class BaseCloudinaryAction
 
     public function queryAsset(string $publicId, ?string $path, string $resourceType): ?Asset
     {
+        $path = $this->formatPath($path);
+        $folder = $this->assetsService()->findFolder([
+            'volumeId' => $this->volumeId,
+            'path' => $path,
+        ]);
+
+        if ($folder === null) {
+            return null;
+        }
+
         $filename = $this->formatFilename($publicId, $resourceType);
 
-        $assetQuery = Asset::find()
+        if ($resourceType !== AssetType::RAW) {
+            $filename .= '.*';
+        }
+
+        $assetQuery = $this->createAssetQuery()
             ->volumeId($this->volumeId)
             ->filename($filename)
-            ->folderPath($path ?? '');
+            ->folderId($folder->id);
 
         if ($resourceType === AssetType::IMAGE) {
             $assetQuery->kind('image');
@@ -45,7 +64,37 @@ abstract class BaseCloudinaryAction
             $assetQuery->kind(['video', 'audio']);
         }
 
-        return $assetQuery->one();
+        $assets = $assetQuery->limit(2)->all();
+
+        if (count($assets) > 1) {
+            $this->logAmbiguousAsset($publicId, $path, $resourceType);
+            return null;
+        }
+
+        return $assets[0] ?? null;
+    }
+
+    protected function assetsService(): Assets
+    {
+        return Craft::$app->getAssets();
+    }
+
+    protected function volumesService(): Volumes
+    {
+        return Craft::$app->getVolumes();
+    }
+
+    protected function createAssetQuery(): AssetQuery
+    {
+        return Asset::find();
+    }
+
+    protected function logAmbiguousAsset(string $publicId, string $path, string $resourceType): void
+    {
+        Cloudinary::log(
+            "Ambiguous asset lookup - Public ID: {$publicId}, Folder: {$path}, Type: {$resourceType}",
+            'warning',
+        );
     }
 
     public function removePathFromPublicId(string $publicId, string $resourceType): void

@@ -26,10 +26,11 @@ describe('formatPath', function() {
         expect($this->action->formatPath('photos/vacation'))->toBe('photos/vacation/');
     });
 
-    it('returns null for empty paths', function() {
-        expect($this->action->formatPath(''))->toBeNull();
-        expect($this->action->formatPath('/'))->toBeNull();
-        expect($this->action->formatPath('.'))->toBeNull();
+    it('returns the Craft root path for empty paths', function() {
+        expect($this->action->formatPath(''))->toBe('');
+        expect($this->action->formatPath('/'))->toBe('');
+        expect($this->action->formatPath('.'))->toBe('');
+        expect($this->action->formatPath(null))->toBe('');
     });
 });
 
@@ -50,8 +51,9 @@ describe('formatFilename', function() {
         expect($this->action->formatFilename('document.pdf', AssetType::RAW))->toBe('document.pdf');
     });
 
-    it('uses wildcard format by default for non-raw', function() {
-        expect($this->action->formatFilename('my-photo', AssetType::IMAGE))->toBe('my-photo.*');
+    it('does not infer a wildcard format', function() {
+        expect($this->action->formatFilename('my-photo', AssetType::IMAGE))->toBe('my-photo');
+        expect($this->action->formatFilename('my-photo', AssetType::IMAGE, ''))->toBe('my-photo');
     });
 
     it('extracts basename from paths with directories', function() {
