@@ -33,7 +33,7 @@ class SyncReconciler extends Component
 
         $client = $fs->getClient();
 
-        $cloudinaryAssets = $this->fetchAllCloudinaryAssets($client);
+        $cloudinaryAssets = $this->fetchAllCloudinaryAssets($client, $volume->getSubpath(false));
         $craftAssets = $this->fetchAllCraftAssets($volumeId);
 
         $stats = [
@@ -134,20 +134,20 @@ class SyncReconciler extends Component
         return $stats;
     }
 
-    private const RESOURCE_TYPES = ['image', 'video', 'raw'];
-
-    private function fetchAllCloudinaryAssets($client): array
+    private function fetchAllCloudinaryAssets($client, string $volumeSubpath = ''): array
     {
         $assets = [];
+        $volumeSubpath = trim($volumeSubpath, '/.');
+        $folders = [$volumeSubpath];
 
-        foreach (self::RESOURCE_TYPES as $resourceType) {
+        while ($folders !== []) {
+            $assetFolder = array_shift($folders);
             $nextCursor = null;
 
             do {
                 $options = [
-                    'resource_type' => $resourceType,
                     'max_results' => 500,
-                    'fields' => 'asset_folder,display_name',
+                    'fields' => 'asset_folder,display_name,resource_type,format,bytes,width,height,created_at',
                 ];
 
                 if ($nextCursor !== null) {
@@ -155,10 +155,10 @@ class SyncReconciler extends Component
                 }
 
                 try {
-                    $result = $client->adminApi()->assets($options);
+                    $result = $client->adminApi()->assetsByAssetFolder($assetFolder, $options);
                 } catch (\Throwable $e) {
                     Cloudinary::log(
-                        "Reconciler: Admin API listing failed for resource_type={$resourceType}: {$e->getMessage()}",
+                        "Reconciler: Admin API listing failed for asset_folder={$assetFolder}: {$e->getMessage()}",
                         'error'
                     );
                     throw $e;
@@ -167,7 +167,32 @@ class SyncReconciler extends Component
                 $resultArray = $result->getArrayCopy();
 
                 foreach ($resultArray['resources'] ?? [] as $resource) {
+                    $resource['asset_folder'] = $this->relativeAssetFolder(
+                        $resource['asset_folder'] ?? '',
+                        $volumeSubpath,
+                    );
                     $assets[] = $resource;
+                }
+
+                $nextCursor = $resultArray['next_cursor'] ?? null;
+            } while ($nextCursor !== null);
+
+            $nextCursor = null;
+
+            do {
+                $options = ['max_results' => 500];
+
+                if ($nextCursor !== null) {
+                    $options['next_cursor'] = $nextCursor;
+                }
+
+                $result = $assetFolder === ''
+                    ? $client->adminApi()->rootFolders($options)
+                    : $client->adminApi()->subFolders($assetFolder, $options);
+                $resultArray = $result->getArrayCopy();
+
+                foreach ($resultArray['folders'] ?? [] as $folder) {
+                    $folders[] = $folder['path'];
                 }
 
                 $nextCursor = $resultArray['next_cursor'] ?? null;
@@ -175,6 +200,26 @@ class SyncReconciler extends Component
         }
 
         return $assets;
+    }
+
+    private function relativeAssetFolder(string $assetFolder, string $volumeSubpath): string
+    {
+        $assetFolder = trim($assetFolder, '/.');
+        $volumeSubpath = trim($volumeSubpath, '/.');
+
+        if ($volumeSubpath === '' || $assetFolder === '') {
+            return $assetFolder;
+        }
+
+        if ($assetFolder === $volumeSubpath) {
+            return '';
+        }
+
+        $prefix = $volumeSubpath . '/';
+
+        return str_starts_with($assetFolder, $prefix)
+            ? substr($assetFolder, strlen($prefix))
+            : $assetFolder;
     }
 
     private function fetchAllCraftAssets(int $volumeId): array

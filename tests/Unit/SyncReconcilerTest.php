@@ -88,6 +88,63 @@ describe('SyncReconciler resource key building', function() {
     });
 });
 
+describe('SyncReconciler Cloudinary folder scoping', function() {
+    it('lists only the volume subpath and makes returned folders volume-relative', function() {
+        $adminApi = new class() {
+            public array $listedAssetFolders = [];
+
+            public function assetsByAssetFolder(string $assetFolder, array $options): ArrayObject
+            {
+                $this->listedAssetFolders[] = $assetFolder;
+
+                $resources = match ($assetFolder) {
+                    'volume-a' => [[
+                        'public_id' => 'root-image',
+                        'resource_type' => 'image',
+                        'format' => 'jpg',
+                        'asset_folder' => 'volume-a',
+                    ]],
+                    'volume-a/nested' => [[
+                        'public_id' => 'nested-image',
+                        'resource_type' => 'image',
+                        'format' => 'jpg',
+                        'asset_folder' => 'volume-a/nested',
+                    ]],
+                    default => throw new RuntimeException("Unexpected asset folder: {$assetFolder}"),
+                };
+
+                return new ArrayObject(['resources' => $resources]);
+            }
+
+            public function subFolders(string $assetFolder, array $options): ArrayObject
+            {
+                $folders = $assetFolder === 'volume-a'
+                    ? [['path' => 'volume-a/nested']]
+                    : [];
+
+                return new ArrayObject(['folders' => $folders]);
+            }
+        };
+        $client = new class($adminApi) {
+            public function __construct(private object $adminApi)
+            {
+            }
+
+            public function adminApi(): object
+            {
+                return $this->adminApi;
+            }
+        };
+        $reconciler = new SyncReconciler();
+        $method = new ReflectionMethod(SyncReconciler::class, 'fetchAllCloudinaryAssets');
+
+        $assets = $method->invoke($reconciler, $client, '/volume-a/');
+
+        expect($adminApi->listedAssetFolders)->toBe(['volume-a', 'volume-a/nested'])
+            ->and(array_column($assets, 'asset_folder'))->toBe(['', 'nested']);
+    });
+});
+
 describe('SyncReconciler metadata change detection', function() {
     beforeEach(function() {
         $this->reconciler = new SyncReconciler();
