@@ -1,6 +1,5 @@
 <?php
 
-use Cloudinary\Api\Exception\NotFound;
 use Noo\CraftCloudinary\services\SyncReconciler;
 
 describe('SyncReconciler resource key building', function() {
@@ -90,50 +89,75 @@ describe('SyncReconciler resource key building', function() {
 });
 
 describe('SyncReconciler Cloudinary folder scoping', function() {
-    it('lists only the volume subpath and makes returned folders volume-relative', function() {
-        $adminApi = new class() {
-            public array $listedAssetFolders = [];
+    it('uses one paginated prefix search and makes returned folders volume-relative', function() {
+        $client = new class() {
+            public array $requests = [];
 
-            public function assetsByAssetFolder(string $assetFolder, array $options): ArrayObject
+            public function searchApi(): object
             {
-                $this->listedAssetFolders[] = $assetFolder;
+                return new class($this) {
+                    private string $expression;
+                    private array $fields;
+                    private int $maxResults;
+                    private ?string $nextCursor = null;
 
-                $resources = match ($assetFolder) {
-                    'volume-a' => [[
-                        'public_id' => 'root-image',
-                        'resource_type' => 'image',
-                        'format' => 'jpg',
-                        'asset_folder' => 'volume-a',
-                    ]],
-                    'volume-a/nested' => [[
-                        'public_id' => 'nested-image',
-                        'resource_type' => 'image',
-                        'format' => 'jpg',
-                        'asset_folder' => 'volume-a/nested',
-                    ]],
-                    default => throw new RuntimeException("Unexpected asset folder: {$assetFolder}"),
+                    public function __construct(private object $client)
+                    {
+                    }
+
+                    public function expression(string $expression): static
+                    {
+                        $this->expression = $expression;
+                        return $this;
+                    }
+
+                    public function fields(array $fields): static
+                    {
+                        $this->fields = $fields;
+                        return $this;
+                    }
+
+                    public function maxResults(int $maxResults): static
+                    {
+                        $this->maxResults = $maxResults;
+                        return $this;
+                    }
+
+                    public function nextCursor(string $nextCursor): static
+                    {
+                        $this->nextCursor = $nextCursor;
+                        return $this;
+                    }
+
+                    public function execute(): ArrayObject
+                    {
+                        $this->client->requests[] = [
+                            'expression' => $this->expression,
+                            'fields' => $this->fields,
+                            'maxResults' => $this->maxResults,
+                            'nextCursor' => $this->nextCursor,
+                        ];
+
+                        if ($this->nextCursor === null) {
+                            return new ArrayObject([
+                                'resources' => [[
+                                    'public_id' => 'root-image',
+                                    'resource_type' => 'image',
+                                    'format' => 'jpg',
+                                    'asset_folder' => 'volume-a',
+                                ]],
+                                'next_cursor' => 'page-2',
+                            ]);
+                        }
+
+                        return new ArrayObject(['resources' => [[
+                            'public_id' => 'nested-image',
+                            'resource_type' => 'image',
+                            'format' => 'jpg',
+                            'asset_folder' => 'volume-a/nested',
+                        ]]]);
+                    }
                 };
-
-                return new ArrayObject(['resources' => $resources]);
-            }
-
-            public function subFolders(string $assetFolder, array $options): ArrayObject
-            {
-                $folders = $assetFolder === 'volume-a'
-                    ? [['path' => 'volume-a/nested']]
-                    : [];
-
-                return new ArrayObject(['folders' => $folders]);
-            }
-        };
-        $client = new class($adminApi) {
-            public function __construct(private object $adminApi)
-            {
-            }
-
-            public function adminApi(): object
-            {
-                return $this->adminApi;
             }
         };
         $reconciler = new SyncReconciler();
@@ -141,36 +165,13 @@ describe('SyncReconciler Cloudinary folder scoping', function() {
 
         $assets = $method->invoke($reconciler, $client, '/volume-a/');
 
-        expect($adminApi->listedAssetFolders)->toBe(['volume-a', 'volume-a/nested'])
-            ->and(array_column($assets, 'asset_folder'))->toBe(['', 'nested']);
-    });
-
-    it('treats a missing subpath folder as an empty listing', function() {
-        $adminApi = new class() {
-            public function assetsByAssetFolder(string $assetFolder, array $options): ArrayObject
-            {
-                throw new NotFound("Can't find folder with path={$assetFolder}");
-            }
-
-            public function subFolders(string $assetFolder, array $options): ArrayObject
-            {
-                throw new NotFound("Can't find folder with path={$assetFolder}");
-            }
-        };
-        $client = new class($adminApi) {
-            public function __construct(private object $adminApi)
-            {
-            }
-
-            public function adminApi(): object
-            {
-                return $this->adminApi;
-            }
-        };
-        $reconciler = new SyncReconciler();
-        $method = new ReflectionMethod(SyncReconciler::class, 'fetchAllCloudinaryAssets');
-
-        expect($method->invoke($reconciler, $client, 'volume-a'))->toBe([]);
+        expect(array_column($assets, 'asset_folder'))->toBe(['', 'nested'])
+            ->and($client->requests)->toHaveCount(2)
+            ->and($client->requests[0]['expression'])
+            ->toBe('type:upload AND (asset_folder=volume-a OR asset_folder=volume-a/*)')
+            ->and($client->requests[0]['maxResults'])->toBe(500)
+            ->and($client->requests[0]['nextCursor'])->toBeNull()
+            ->and($client->requests[1]['nextCursor'])->toBe('page-2');
     });
 });
 

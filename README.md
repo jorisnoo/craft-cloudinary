@@ -31,6 +31,8 @@ To create a new Cloudinary filesystem, visit **Settings** → **Filesystems**, p
 
 To start using the filesystem, visit **Settings** → **Assets** → **Volumes**. You can create a new volume using the Cloudinary filesystem for both storage and transforms, or add the Cloudinary filesystem to any existing volume for transforms only. In the latter case, assets with public URLs from any filesystem are transformed by Cloudinary using the [fetch feature](https://cloudinary.com/documentation/fetch_remote_images#fetch_and_deliver_remote_files).
 
+> **Important:** Only one Cloudinary-backed Craft asset volume is supported. Do not configure multiple storage volumes, including volumes separated by Cloudinary subpaths. Cloudinary can still be used as the transform filesystem for other volumes.
+
 ## Image Transformations
 
 The plugin supports all of [Craft's native transform options](https://craftcms.com/docs/5.x/system/image-transforms.html), including mode (fit, letterbox, stretch, crop), position, quality, and format.
@@ -64,6 +66,8 @@ https://your-site.com/actions/cloudinary/notifications/process?volume={VOLUME_ID
 ```
 
 Replace `{VOLUME_ID}` with your asset volume ID.
+
+> **Important:** Do not move or rename the Cloudinary folder configured as the volume's root subpath. Doing so moves the entire volume outside Craft's configured scope. Moving or renaming folders below that root is supported.
 
 ### Supported notification types
 

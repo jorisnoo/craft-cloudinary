@@ -3,12 +3,11 @@
 namespace Noo\CraftCloudinary\console\controllers;
 
 use Cloudinary\Api\Exception\NotFound;
-use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\helpers\Queue;
-use League\Flysystem\FileAttributes;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 use yii\console\Controller;
 
@@ -28,33 +27,25 @@ class RemovePathsFromPublicIdsController extends Controller
             throw new \InvalidArgumentException("Volume {$volumeId} does not use a Cloudinary filesystem");
         }
 
-        $contentList = $fs
-            ->getCloudinaryFilesystem()
-            ->listContents("", true);
+        $resources = CloudinaryAssetSearch::resources(
+            $fs->getClient(),
+            $volume->getSubpath(false),
+            ['public_id', 'resource_type'],
+        );
 
-        collect($contentList)
-            // get only files
-            ->filter(fn($item) => $item instanceof FileAttributes)
-            // get only their public ids and resource type
-            ->map(function($item) {
-                $mimeType = $item['mimeType'];
+        foreach ($resources as $resource) {
+            $publicId = $resource['public_id'];
 
-                $resourceType = match (true) {
-                    str_starts_with($mimeType, "image/"), $mimeType === "application/pdf" => AssetType::IMAGE,
-                    str_starts_with($mimeType, "video/"), str_starts_with($mimeType, "audio/") => AssetType::VIDEO,
-                    default => AssetType::RAW,
-                };
+            if ($publicId === basename($publicId)) {
+                continue;
+            }
 
-                return [
-                    "resource_type" => $resourceType,
-                    "public_id" => pathinfo($item->path(), PATHINFO_FILENAME),
-                ];
-            })
-            // get only the ones where the public_id contains a path
-            ->filter(fn($item) => $item["public_id"] !== basename($item["public_id"]))
-            ->each(function($item) use ($volumeId) {
-                Cloudinary::log("Dispatching job to remove path from public_id {$item["public_id"]}");
-                Queue::push(new RemovePathFromCloudinaryPublicId($volumeId, $item["public_id"], $item["resource_type"]));
-            });
+            Cloudinary::log("Dispatching job to remove path from public_id {$publicId}");
+            Queue::push(new RemovePathFromCloudinaryPublicId(
+                $volumeId,
+                $publicId,
+                $resource['resource_type'],
+            ));
+        }
     }
 }

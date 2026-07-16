@@ -2,7 +2,6 @@
 
 namespace Noo\CraftCloudinary\services;
 
-use Cloudinary\Api\Exception\NotFound;
 use Craft;
 use craft\db\Query;
 use craft\db\Table;
@@ -13,6 +12,7 @@ use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\exceptions\ReconciliationAbortedException;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\AssetFolders;
+use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
 use yii\base\Component;
 
 class SyncReconciler extends Component
@@ -139,81 +139,40 @@ class SyncReconciler extends Component
     private function fetchAllCloudinaryAssets($client, string $volumeSubpath = ''): array
     {
         $assets = [];
-        $volumeSubpath = trim($volumeSubpath, '/.');
-        $folders = [$volumeSubpath];
+        $volumeSubpath = trim($volumeSubpath, '/');
 
-        while ($folders !== []) {
-            $assetFolder = array_shift($folders);
-            $nextCursor = null;
+        try {
+            $resources = CloudinaryAssetSearch::resources($client, $volumeSubpath, [
+                'public_id',
+                'asset_folder',
+                'display_name',
+                'resource_type',
+                'format',
+                'bytes',
+                'width',
+                'height',
+                'created_at',
+            ]);
 
-            do {
-                $options = [
-                    'max_results' => 500,
-                    'fields' => 'asset_folder,display_name,resource_type,format,bytes,width,height,created_at',
-                ];
+            foreach ($resources as $resource) {
+                $relativeFolder = AssetFolders::relativeToSubpath(
+                    $resource['asset_folder'] ?? '',
+                    $volumeSubpath,
+                );
 
-                if ($nextCursor !== null) {
-                    $options['next_cursor'] = $nextCursor;
+                if ($relativeFolder === null) {
+                    continue;
                 }
 
-                try {
-                    $result = $client->adminApi()->assetsByAssetFolder($assetFolder, $options);
-                } catch (NotFound) {
-                    // The folder doesn't exist (yet) in Cloudinary - nothing to list.
-                    break;
-                } catch (\Throwable $e) {
-                    Cloudinary::log(
-                        "Reconciler: Admin API listing failed for asset_folder={$assetFolder}: {$e->getMessage()}",
-                        'error'
-                    );
-                    throw $e;
-                }
-
-                $resultArray = $result->getArrayCopy();
-
-                foreach ($resultArray['resources'] ?? [] as $resource) {
-                    $relativeFolder = AssetFolders::relativeToSubpath(
-                        $resource['asset_folder'] ?? '',
-                        $volumeSubpath,
-                    );
-
-                    if ($relativeFolder === null) {
-                        continue;
-                    }
-
-                    $resource['asset_folder'] = $relativeFolder;
-                    $assets[] = $resource;
-                }
-
-                $nextCursor = $resultArray['next_cursor'] ?? null;
-            } while ($nextCursor !== null);
-
-            $nextCursor = null;
-
-            do {
-                $options = ['max_results' => 500];
-
-                if ($nextCursor !== null) {
-                    $options['next_cursor'] = $nextCursor;
-                }
-
-                try {
-                    $result = $assetFolder === ''
-                        ? $client->adminApi()->rootFolders($options)
-                        : $client->adminApi()->subFolders($assetFolder, $options);
-                } catch (NotFound) {
-                    // The folder doesn't exist (yet) in Cloudinary - no subfolders.
-                    break;
-                }
-
-                $resultArray = $result->getArrayCopy();
-
-                foreach ($resultArray['folders'] ?? [] as $folder) {
-                    $folders[] = $folder['path'];
-                }
-
-                $nextCursor = $resultArray['next_cursor'] ?? null;
-            } while ($nextCursor !== null);
+                $resource['asset_folder'] = $relativeFolder;
+                $assets[] = $resource;
+            }
+        } catch (\Throwable $e) {
+            Cloudinary::log(
+                "Reconciler: Search API listing failed for volume subpath={$volumeSubpath}: {$e->getMessage()}",
+                'error',
+            );
+            throw $e;
         }
 
         return $assets;

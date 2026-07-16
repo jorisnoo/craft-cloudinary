@@ -10,8 +10,8 @@ class AssetFolders
      */
     public static function relativeToSubpath(string $assetFolder, string $volumeSubpath): ?string
     {
-        $assetFolder = trim($assetFolder, '/.');
-        $volumeSubpath = trim($volumeSubpath, '/.');
+        $assetFolder = trim($assetFolder, '/');
+        $volumeSubpath = trim($volumeSubpath, '/');
 
         if ($volumeSubpath === '') {
             return $assetFolder;
@@ -28,5 +28,25 @@ class AssetFolders
         }
 
         return null;
+    }
+
+    /**
+     * Builds a Search API expression for uploaded assets in a volume subpath.
+     */
+    public static function searchExpression(string $volumeSubpath): string
+    {
+        $volumeSubpath = trim($volumeSubpath, '/');
+
+        if ($volumeSubpath === '') {
+            return 'type:upload';
+        }
+
+        $escapedSubpath = preg_replace_callback(
+            '~[!(){}\[\]*^\~?:\\\\=&><"\s]~u',
+            static fn(array $matches): string => '\\' . $matches[0],
+            $volumeSubpath,
+        );
+
+        return "type:upload AND (asset_folder={$escapedSubpath} OR asset_folder={$escapedSubpath}/*)";
     }
 }
