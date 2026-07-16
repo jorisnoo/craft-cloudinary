@@ -29,9 +29,16 @@ class AssetUploadAction extends BaseCloudinaryAction
             return;
         }
 
+        $relativeFolder = $this->relativeAssetFolder($assetFolder);
+
+        if ($relativeFolder === null) {
+            $this->logSkippedOutsideSubpath("upload of '{$publicId}'", $assetFolder);
+            return;
+        }
+
         $this->removePathFromPublicId($publicId, $resourceType);
 
-        $folder = (new FolderCreateAction($this->volumeId))->firstOrCreate($assetFolder);
+        $folder = (new FolderCreateAction($this->volumeId))->firstOrCreate($relativeFolder);
         $filename = $this->formatFilename($publicId, $resourceType, $format);
 
         $existingAssetQuery = (new Query())

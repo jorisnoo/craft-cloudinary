@@ -8,6 +8,7 @@ use Craft;
 use craft\helpers\Queue;
 use League\Flysystem\FileAttributes;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 use yii\console\Controller;
 
@@ -21,8 +22,13 @@ class RemovePathsFromPublicIdsController extends Controller
             throw new NotFound('Volume not found');
         }
 
-        $contentList = $volume
-            ->getFs()
+        $fs = $volume->getFs();
+
+        if (!$fs instanceof CloudinaryFs) {
+            throw new \InvalidArgumentException("Volume {$volumeId} does not use a Cloudinary filesystem");
+        }
+
+        $contentList = $fs
             ->getCloudinaryFilesystem()
             ->listContents("", true);
 

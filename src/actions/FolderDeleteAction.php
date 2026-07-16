@@ -5,11 +5,18 @@ namespace Noo\CraftCloudinary\actions;
 class FolderDeleteAction extends BaseCloudinaryAction
 {
     /**
-     * @param ?string $folderPath, eg. 'parent/folder-to-delete'
+     * @param ?string $folderPath absolute Cloudinary path, eg. 'parent/folder-to-delete'
      */
     public function delete(?string $folderPath): void
     {
-        $folderPath = $this->formatPath($folderPath);
+        $relativePath = $this->relativeAssetFolder($folderPath);
+
+        if ($relativePath === null) {
+            $this->logSkippedOutsideSubpath('folder deletion', (string) $folderPath);
+            return;
+        }
+
+        $folderPath = $this->formatPath($relativePath);
 
         // Don't delete the base folder
         if ($folderPath === '') {

@@ -3,10 +3,10 @@
 namespace Noo\CraftCloudinary\jobs;
 
 use Cloudinary\Api\Exception\NotFound;
-use Cloudinary\Cloudinary;
 use Craft;
 use craft\queue\BaseJob;
 use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 
 class RemovePathFromCloudinaryPublicId extends BaseJob
 {
@@ -39,8 +39,13 @@ class RemovePathFromCloudinaryPublicId extends BaseJob
             throw new NotFound('Volume not found');
         }
 
-        /* @var Cloudinary $client */
-        $client = $volume->getFs()->getClient();
+        $fs = $volume->getFs();
+
+        if (!$fs instanceof CloudinaryFs) {
+            throw new \InvalidArgumentException("Volume {$this->volumeId} does not use a Cloudinary filesystem");
+        }
+
+        $client = $fs->getClient();
 
         CloudinaryPlugin::log("Renaming public_id from '{$this->publicId}' to '$newPublicId'");
 

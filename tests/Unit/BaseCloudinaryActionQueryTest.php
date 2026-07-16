@@ -38,6 +38,7 @@ class QueryTestAction extends BaseCloudinaryAction
 class QueryTestAssets extends Assets
 {
     public mixed $criteria = null;
+    public ?int $rootFolderVolumeId = null;
 
     public function __construct(public ?VolumeFolder $folder)
     {
@@ -46,6 +47,13 @@ class QueryTestAssets extends Assets
     public function findFolder(mixed $criteria = []): ?VolumeFolder
     {
         $this->criteria = $criteria;
+
+        return $this->folder;
+    }
+
+    public function getRootFolderByVolumeId(int $volumeId): ?VolumeFolder
+    {
+        $this->rootFolderVolumeId = $volumeId;
 
         return $this->folder;
     }
@@ -128,7 +136,8 @@ it('scopes root asset queries to the root folder id', function() {
     [$action, $assets, $query] = queryTestAction(queryTestFolder(10, ''), [$asset]);
 
     expect($action->queryAsset('photo', null, AssetType::IMAGE))->toBe($asset)
-        ->and($assets->criteria)->toBe(['volumeId' => 7, 'path' => ''])
+        ->and($assets->rootFolderVolumeId)->toBe(7)
+        ->and($assets->criteria)->toBeNull()
         ->and($query->requestedVolumeId)->toBe(7)
         ->and($query->requestedFilename)->toBe('photo.*')
         ->and($query->requestedFolderId)->toBe(10)

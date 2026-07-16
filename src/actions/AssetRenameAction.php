@@ -13,11 +13,16 @@ class AssetRenameAction extends BaseCloudinaryAction
         string $assetFolder,
         string $resourceType,
     ): void {
+        // get the asset folder path relative to the volume subpath
+        $path = $this->relativeAssetFolder($assetFolder);
+
+        if ($path === null) {
+            $this->logSkippedOutsideSubpath("rename of '{$fromPublicId}'", $assetFolder);
+            return;
+        }
+
         // Remove path from the new public_id
         $this->removePathFromPublicId($toPublicId, $resourceType);
-
-        // get the asset folder path
-        $path = $this->formatPath($assetFolder);
 
         // public ids should never contain paths, but anyway, remove them
         $fromFilename = basename($fromPublicId);

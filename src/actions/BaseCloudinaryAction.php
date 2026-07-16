@@ -9,10 +9,13 @@ use craft\elements\db\AssetQuery;
 use craft\services\Assets;
 use craft\services\Volumes;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\helpers\AssetFolders;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 
 abstract class BaseCloudinaryAction
 {
+    private ?string $volumeSubpath = null;
+
     public function __construct(public int $volumeId)
     {
     }
@@ -22,6 +25,30 @@ abstract class BaseCloudinaryAction
         $path = trim((string) $path, '/.');
 
         return $path === '' ? '' : $path . '/';
+    }
+
+    /**
+     * Converts an absolute Cloudinary asset folder into a path relative to the
+     * volume subpath. Returns null when the folder lies outside the subpath,
+     * meaning the event does not concern this volume.
+     */
+    public function relativeAssetFolder(?string $assetFolder): ?string
+    {
+        return AssetFolders::relativeToSubpath((string) $assetFolder, $this->volumeSubpath());
+    }
+
+    protected function volumeSubpath(): string
+    {
+        return $this->volumeSubpath ??= $this->volumesService()
+            ->getVolumeById($this->volumeId)
+            ?->getSubpath(false) ?? '';
+    }
+
+    protected function logSkippedOutsideSubpath(string $subject, string $assetFolder): void
+    {
+        Cloudinary::log(
+            "Skipping webhook for {$subject} - asset folder '{$assetFolder}' is outside the volume subpath '{$this->volumeSubpath()}'",
+        );
     }
 
     public function formatFilename(string $publicId, string $resourceType, ?string $format = null): string
@@ -38,10 +65,15 @@ abstract class BaseCloudinaryAction
     public function queryAsset(string $publicId, ?string $path, string $resourceType): ?Asset
     {
         $path = $this->formatPath($path);
-        $folder = $this->assetsService()->findFolder([
-            'volumeId' => $this->volumeId,
-            'path' => $path,
-        ]);
+
+        // findFolder() ignores an empty path criteria, so the root folder
+        // has to be resolved explicitly.
+        $folder = $path === ''
+            ? $this->assetsService()->getRootFolderByVolumeId($this->volumeId)
+            : $this->assetsService()->findFolder([
+                'volumeId' => $this->volumeId,
+                'path' => $path,
+            ]);
 
         if ($folder === null) {
             return null;

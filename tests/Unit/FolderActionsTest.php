@@ -14,6 +14,7 @@ class FolderCreateTestAction extends FolderCreateAction
         int $volumeId,
         private readonly Assets $assets,
         private readonly Volumes $volumes,
+        private readonly string $subpath = '',
     ) {
         parent::__construct($volumeId);
     }
@@ -27,29 +28,19 @@ class FolderCreateTestAction extends FolderCreateAction
     {
         return $this->volumes;
     }
+
+    protected function volumeSubpath(): string
+    {
+        return $this->subpath;
+    }
 }
 
 class FolderDeleteTestAction extends FolderDeleteAction
 {
-    public function __construct(int $volumeId, private readonly Assets $assets)
-    {
-        parent::__construct($volumeId);
-    }
-
-    protected function assetsService(): Assets
-    {
-        return $this->assets;
-    }
-}
-
-class FolderRenameTestAction extends FolderRenameAction
-{
-    public ?string $createdFolderPath = null;
-
     public function __construct(
         int $volumeId,
         private readonly Assets $assets,
-        private readonly VolumeFolder $parentFolder,
+        private readonly string $subpath = '',
     ) {
         parent::__construct($volumeId);
     }
@@ -59,11 +50,46 @@ class FolderRenameTestAction extends FolderRenameAction
         return $this->assets;
     }
 
+    protected function volumeSubpath(): string
+    {
+        return $this->subpath;
+    }
+}
+
+class FolderRenameTestAction extends FolderRenameAction
+{
+    public ?string $createdFolderPath = null;
+    public ?string $deletedFolderPath = null;
+
+    public function __construct(
+        int $volumeId,
+        private readonly Assets $assets,
+        private readonly VolumeFolder $parentFolder,
+        private readonly string $subpath = '',
+    ) {
+        parent::__construct($volumeId);
+    }
+
+    protected function assetsService(): Assets
+    {
+        return $this->assets;
+    }
+
+    protected function volumeSubpath(): string
+    {
+        return $this->subpath;
+    }
+
     protected function firstOrCreateFolder(?string $folderPath): VolumeFolder
     {
         $this->createdFolderPath = $folderPath;
 
         return $this->parentFolder;
+    }
+
+    protected function deleteFolder(?string $folderPath): void
+    {
+        $this->deletedFolderPath = $folderPath;
     }
 }
 
@@ -176,4 +202,110 @@ it('refuses to move or rename the volume root folder', function() {
 
     expect(fn() => $action->rename('', 'renamed'))
         ->toThrow(InvalidArgumentException::class, 'The volume root folder cannot be moved or renamed');
+});
+
+it('creates webhook folders relative to the volume subpath', function() {
+    $volume = $this->createMock(Volume::class);
+    $folder = folderActionFolder(3, 'photos/', 1);
+    $volumes = $this->createMock(Volumes::class);
+    $volumes->method('getVolumeById')->with(7)->willReturn($volume);
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->once())
+        ->method('ensureFolderByFullPathAndVolume')
+        ->with('photos/', $volume, true)
+        ->willReturn($folder);
+
+    $action = new FolderCreateTestAction(7, $assets, $volumes, 'volume-a');
+
+    expect($action->createFromWebhook('volume-a/photos'))->toBe($folder);
+});
+
+it('ignores webhook folders created outside the volume subpath', function() {
+    $volumes = $this->createMock(Volumes::class);
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('ensureFolderByFullPathAndVolume');
+
+    $action = new FolderCreateTestAction(7, $assets, $volumes, 'volume-a');
+
+    expect($action->createFromWebhook('elsewhere/photos'))->toBeNull();
+});
+
+it('deletes folders relative to the volume subpath', function() {
+    $folder = folderActionFolder(4, 'photos/');
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->once())
+        ->method('findFolder')
+        ->with(['volumeId' => 7, 'path' => 'photos/'])
+        ->willReturn($folder);
+    $assets->expects($this->once())->method('deleteFoldersByIds')->with(4, false);
+
+    (new FolderDeleteTestAction(7, $assets, 'volume-a'))->delete('volume-a/photos');
+});
+
+it('ignores folder deletions outside the volume subpath', function() {
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('findFolder');
+    $assets->expects($this->never())->method('deleteFoldersByIds');
+
+    (new FolderDeleteTestAction(7, $assets, 'volume-a'))->delete('elsewhere/photos');
+});
+
+it('never deletes the subpath folder acting as the volume root', function() {
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('deleteFoldersByIds');
+
+    (new FolderDeleteTestAction(7, $assets, 'volume-a'))->delete('volume-a');
+});
+
+it('renames folders relative to the volume subpath', function() {
+    $source = folderActionFolder(10, 'source/', 1);
+    $parent = folderActionFolder(1, '');
+
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->exactly(2))
+        ->method('findFolder')
+        ->willReturnCallback(fn(array $criteria) => $criteria['path'] === 'source/' ? $source : null);
+    $assets->expects($this->once())
+        ->method('getAllDescendantFolders')
+        ->willReturn([]);
+
+    $action = new FolderRenameTestAction(7, $assets, $parent, 'volume-a');
+    $result = $action->rename('volume-a/source', 'volume-a/renamed');
+
+    expect($result)->toBe($source)
+        ->and($source->path)->toBe('renamed/');
+});
+
+it('deletes a folder that was moved out of the volume subpath', function() {
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('findFolder');
+    $parent = folderActionFolder(1, '');
+
+    $action = new FolderRenameTestAction(7, $assets, $parent, 'volume-a');
+
+    expect($action->rename('volume-a/source', 'elsewhere/source'))->toBeNull()
+        ->and($action->deletedFolderPath)->toBe('volume-a/source');
+});
+
+it('creates a folder that was moved into the volume subpath', function() {
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('findFolder');
+    $parent = folderActionFolder(30, 'arrived/');
+
+    $action = new FolderRenameTestAction(7, $assets, $parent, 'volume-a');
+
+    expect($action->rename('elsewhere/source', 'volume-a/arrived'))->toBe($parent)
+        ->and($action->createdFolderPath)->toBe('arrived');
+});
+
+it('ignores folder renames entirely outside the volume subpath', function() {
+    $assets = $this->createMock(Assets::class);
+    $assets->expects($this->never())->method('findFolder');
+    $parent = folderActionFolder(1, '');
+
+    $action = new FolderRenameTestAction(7, $assets, $parent, 'volume-a');
+
+    expect($action->rename('elsewhere/a', 'elsewhere/b'))->toBeNull()
+        ->and($action->deletedFolderPath)->toBeNull()
+        ->and($action->createdFolderPath)->toBeNull();
 });

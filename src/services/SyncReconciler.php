@@ -2,6 +2,7 @@
 
 namespace Noo\CraftCloudinary\services;
 
+use Cloudinary\Api\Exception\NotFound;
 use Craft;
 use craft\db\Query;
 use craft\db\Table;
@@ -11,6 +12,7 @@ use Noo\CraftCloudinary\actions\FolderCreateAction;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\exceptions\ReconciliationAbortedException;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
+use Noo\CraftCloudinary\helpers\AssetFolders;
 use yii\base\Component;
 
 class SyncReconciler extends Component
@@ -156,6 +158,9 @@ class SyncReconciler extends Component
 
                 try {
                     $result = $client->adminApi()->assetsByAssetFolder($assetFolder, $options);
+                } catch (NotFound) {
+                    // The folder doesn't exist (yet) in Cloudinary - nothing to list.
+                    break;
                 } catch (\Throwable $e) {
                     Cloudinary::log(
                         "Reconciler: Admin API listing failed for asset_folder={$assetFolder}: {$e->getMessage()}",
@@ -167,10 +172,16 @@ class SyncReconciler extends Component
                 $resultArray = $result->getArrayCopy();
 
                 foreach ($resultArray['resources'] ?? [] as $resource) {
-                    $resource['asset_folder'] = $this->relativeAssetFolder(
+                    $relativeFolder = AssetFolders::relativeToSubpath(
                         $resource['asset_folder'] ?? '',
                         $volumeSubpath,
                     );
+
+                    if ($relativeFolder === null) {
+                        continue;
+                    }
+
+                    $resource['asset_folder'] = $relativeFolder;
                     $assets[] = $resource;
                 }
 
@@ -186,9 +197,15 @@ class SyncReconciler extends Component
                     $options['next_cursor'] = $nextCursor;
                 }
 
-                $result = $assetFolder === ''
-                    ? $client->adminApi()->rootFolders($options)
-                    : $client->adminApi()->subFolders($assetFolder, $options);
+                try {
+                    $result = $assetFolder === ''
+                        ? $client->adminApi()->rootFolders($options)
+                        : $client->adminApi()->subFolders($assetFolder, $options);
+                } catch (NotFound) {
+                    // The folder doesn't exist (yet) in Cloudinary - no subfolders.
+                    break;
+                }
+
                 $resultArray = $result->getArrayCopy();
 
                 foreach ($resultArray['folders'] ?? [] as $folder) {
@@ -200,26 +217,6 @@ class SyncReconciler extends Component
         }
 
         return $assets;
-    }
-
-    private function relativeAssetFolder(string $assetFolder, string $volumeSubpath): string
-    {
-        $assetFolder = trim($assetFolder, '/.');
-        $volumeSubpath = trim($volumeSubpath, '/.');
-
-        if ($volumeSubpath === '' || $assetFolder === '') {
-            return $assetFolder;
-        }
-
-        if ($assetFolder === $volumeSubpath) {
-            return '';
-        }
-
-        $prefix = $volumeSubpath . '/';
-
-        return str_starts_with($assetFolder, $prefix)
-            ? substr($assetFolder, strlen($prefix))
-            : $assetFolder;
     }
 
     private function fetchAllCraftAssets(int $volumeId): array

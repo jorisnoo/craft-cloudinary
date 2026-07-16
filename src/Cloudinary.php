@@ -71,6 +71,7 @@ class Cloudinary extends Plugin
                 $event->actions['index'] = [
                     'helpSummary' => 'Reconcile all Cloudinary asset volumes via the Search API',
                     'action' => function() {
+                        /** @var SyncController $controller */
                         $controller = Craft::$app->controller;
                         return $controller->actionIndex();
                     },
@@ -86,6 +87,7 @@ class Cloudinary extends Plugin
                 $event->actions['rate-limits'] = [
                     'helpSummary' => 'Show Cloudinary API rate limit status for all volumes',
                     'action' => function() {
+                        /** @var ApiController $controller */
                         $controller = Craft::$app->controller;
                         return $controller->actionRateLimits();
                     },
@@ -101,6 +103,7 @@ class Cloudinary extends Plugin
                 $event->actions['remove-paths-from-public-ids'] = [
                     'helpSummary' => 'Scan all Cloudinary assets and remove paths from their public ids',
                     'action' => function($params) {
+                        /** @var RemovePathsFromPublicIdsController $controller */
                         $controller = Craft::$app->controller;
                         $controller->actionScan($params);
                     },
@@ -178,7 +181,13 @@ class Cloudinary extends Plugin
                 return;
             }
 
-            $event->url = $asset->getCloudinaryUrl([
+            $behavior = $asset->getBehavior('cloudinary:url');
+
+            if (!$behavior instanceof CloudinaryUrlBehavior) {
+                return;
+            }
+
+            $event->url = $behavior->getCloudinaryUrl([
                 'width' => $event->width,
                 'height' => $event->height,
                 'crop' => 'fill',
@@ -193,7 +202,7 @@ class Cloudinary extends Plugin
     {
         $logTarget = new FileTarget();
         $logTarget->logFile = Craft::getAlias('@storage/logs/cloudinary.log');
-        $logTarget->levels = ['error', 'warning', 'info'];
+        $logTarget->setLevels(['error', 'warning', 'info']);
         $logTarget->categories = ['cloudinary'];
         $logTarget->maxFileSize = 10240; // 10MB per file before rotation
         $logTarget->maxLogFiles = 30; // Keep 30 rotated files

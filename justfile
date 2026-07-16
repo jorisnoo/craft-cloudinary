@@ -20,7 +20,7 @@ lint-check:
 
 # Run static analysis
 analyse:
-    vendor/bin/phpstan analyse
+    vendor/bin/phpstan analyse --memory-limit=512M
 
 # Run tests
 test:

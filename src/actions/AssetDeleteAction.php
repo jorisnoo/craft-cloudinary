@@ -14,7 +14,12 @@ class AssetDeleteAction extends BaseCloudinaryAction
         foreach ($resources as $resource) {
             $resourceType = $resource['resource_type'];
             $publicId = $resource['public_id'];
-            $folderPath = $this->formatPath($resource['asset_folder']);
+            $folderPath = $this->relativeAssetFolder($resource['asset_folder'] ?? '');
+
+            if ($folderPath === null) {
+                $this->logSkippedOutsideSubpath("delete of '{$publicId}'", $resource['asset_folder'] ?? '');
+                continue;
+            }
 
             $asset = $this->queryAsset($publicId, $folderPath, $resourceType);
 

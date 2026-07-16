@@ -17,7 +17,12 @@ class AssetChangeDisplayNameAction extends BaseCloudinaryAction
             $displayName = $resource['new_display_name'];
             $publicId = $resource['public_id'];
 
-            $assetFolder = $this->formatPath($resource['asset_folder']);
+            $assetFolder = $this->relativeAssetFolder($resource['asset_folder'] ?? '');
+
+            if ($assetFolder === null) {
+                $this->logSkippedOutsideSubpath("display name change of '{$publicId}'", $resource['asset_folder'] ?? '');
+                continue;
+            }
 
             $asset = $this->queryAsset($publicId, $assetFolder, $resourceType);
 

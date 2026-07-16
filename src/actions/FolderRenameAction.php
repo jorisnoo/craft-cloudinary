@@ -3,17 +3,44 @@
 namespace Noo\CraftCloudinary\actions;
 
 use craft\models\VolumeFolder;
+use Noo\CraftCloudinary\Cloudinary;
 
 class FolderRenameAction extends BaseCloudinaryAction
 {
     /**
-     * @param ?string $fromPath
-     * @param ?string $toPath
+     * @param ?string $fromPath absolute Cloudinary path
+     * @param ?string $toPath absolute Cloudinary path
      */
-    public function rename(?string $fromPath, ?string $toPath): VolumeFolder
+    public function rename(?string $fromPath, ?string $toPath): ?VolumeFolder
     {
-        $fromPath = $this->formatPath($fromPath);
-        $toPath = $this->formatPath($toPath);
+        $relativeFromPath = $this->relativeAssetFolder($fromPath);
+        $relativeToPath = $this->relativeAssetFolder($toPath);
+
+        if ($relativeFromPath === null && $relativeToPath === null) {
+            $this->logSkippedOutsideSubpath('folder rename', (string) $fromPath);
+            return null;
+        }
+
+        if ($relativeToPath === null) {
+            // The folder was moved out of the volume subpath, so it no
+            // longer belongs to this volume.
+            $this->deleteFolder($fromPath);
+            return null;
+        }
+
+        if ($relativeFromPath === null) {
+            // The folder was moved into the volume subpath. Its assets can't
+            // be imported from this webhook, so leave them to a sync.
+            Cloudinary::log(
+                "Folder '{$toPath}' was moved into the volume subpath from '{$fromPath}' - run a sync to import its assets",
+                'warning',
+            );
+
+            return $this->firstOrCreateFolder($relativeToPath);
+        }
+
+        $fromPath = $this->formatPath($relativeFromPath);
+        $toPath = $this->formatPath($relativeToPath);
 
         if ($fromPath === '' || $toPath === '') {
             throw new \InvalidArgumentException('The volume root folder cannot be moved or renamed');
@@ -70,5 +97,10 @@ class FolderRenameAction extends BaseCloudinaryAction
     protected function firstOrCreateFolder(?string $folderPath): VolumeFolder
     {
         return (new FolderCreateAction($this->volumeId))->firstOrCreate($folderPath);
+    }
+
+    protected function deleteFolder(?string $folderPath): void
+    {
+        (new FolderDeleteAction($this->volumeId))->delete($folderPath);
     }
 }

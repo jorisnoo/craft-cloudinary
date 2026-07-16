@@ -71,7 +71,7 @@ class NotificationsController extends Controller
                 ),
 
                 // https://cloudinary.com/documentation/notifications#create_asset_folder
-                'create_folder' => (new FolderCreateAction($volumeId))->firstOrCreate(
+                'create_folder' => (new FolderCreateAction($volumeId))->createFromWebhook(
                     folderPath: $this->request->getRequiredBodyParam('folder_path'),
                 ),
 

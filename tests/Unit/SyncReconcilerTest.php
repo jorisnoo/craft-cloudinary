@@ -1,5 +1,6 @@
 <?php
 
+use Cloudinary\Api\Exception\NotFound;
 use Noo\CraftCloudinary\services\SyncReconciler;
 
 describe('SyncReconciler resource key building', function() {
@@ -142,6 +143,34 @@ describe('SyncReconciler Cloudinary folder scoping', function() {
 
         expect($adminApi->listedAssetFolders)->toBe(['volume-a', 'volume-a/nested'])
             ->and(array_column($assets, 'asset_folder'))->toBe(['', 'nested']);
+    });
+
+    it('treats a missing subpath folder as an empty listing', function() {
+        $adminApi = new class() {
+            public function assetsByAssetFolder(string $assetFolder, array $options): ArrayObject
+            {
+                throw new NotFound("Can't find folder with path={$assetFolder}");
+            }
+
+            public function subFolders(string $assetFolder, array $options): ArrayObject
+            {
+                throw new NotFound("Can't find folder with path={$assetFolder}");
+            }
+        };
+        $client = new class($adminApi) {
+            public function __construct(private object $adminApi)
+            {
+            }
+
+            public function adminApi(): object
+            {
+                return $this->adminApi;
+            }
+        };
+        $reconciler = new SyncReconciler();
+        $method = new ReflectionMethod(SyncReconciler::class, 'fetchAllCloudinaryAssets');
+
+        expect($method->invoke($reconciler, $client, 'volume-a'))->toBe([]);
     });
 });
 
