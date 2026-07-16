@@ -175,6 +175,33 @@ describe('SyncReconciler Cloudinary folder scoping', function() {
     });
 });
 
+describe('SyncReconciler delete grace period', function() {
+    beforeEach(function() {
+        $this->reconciler = new SyncReconciler();
+        $this->method = new ReflectionMethod(SyncReconciler::class, 'isWithinDeleteGracePeriod');
+    });
+
+    it('protects assets created within the grace period', function() {
+        $recent = (new DateTimeImmutable('now', new DateTimeZone('UTC')))
+            ->modify('-5 minutes')
+            ->format('Y-m-d H:i:s');
+
+        expect($this->method->invoke($this->reconciler, $recent))->toBeTrue();
+    });
+
+    it('allows deleting assets older than the grace period', function() {
+        $old = (new DateTimeImmutable('now', new DateTimeZone('UTC')))
+            ->modify('-2 hours')
+            ->format('Y-m-d H:i:s');
+
+        expect($this->method->invoke($this->reconciler, $old))->toBeFalse();
+    });
+
+    it('allows deleting assets without a creation date', function() {
+        expect($this->method->invoke($this->reconciler, null))->toBeFalse();
+    });
+});
+
 describe('SyncReconciler metadata change detection', function() {
     beforeEach(function() {
         $this->reconciler = new SyncReconciler();

@@ -19,6 +19,10 @@ class SyncReconciler extends Component
 {
     private const MAX_DELETE_RATIO = 0.10;
 
+    // The Search API index can lag a few seconds behind uploads, so recently
+    // created Craft assets may be missing from the results. Don't delete them.
+    private const DELETE_GRACE_SECONDS = 3600;
+
     public function reconcile(int $volumeId, bool $dryRun = false, bool $force = false): array
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
@@ -70,10 +74,24 @@ class SyncReconciler extends Component
         }
 
         $toDelete = [];
+        $inGracePeriod = 0;
         foreach ($craftIndex as $key => $craftAsset) {
             if (!isset($cloudinaryIndex[$key])) {
+                if ($this->isWithinDeleteGracePeriod($craftAsset['dateCreated'] ?? null)) {
+                    $inGracePeriod++;
+                    continue;
+                }
+
                 $toDelete[] = $craftAsset;
             }
+        }
+
+        if ($inGracePeriod > 0) {
+            Cloudinary::log(sprintf(
+                'Reconciler: skipped deleting %d asset(s) created within the last %d seconds - the Search API may not have indexed them yet',
+                $inGracePeriod,
+                self::DELETE_GRACE_SECONDS,
+            ));
         }
 
         $craftCount = count($craftIndex);
@@ -188,6 +206,7 @@ class SyncReconciler extends Component
                 'assets.width',
                 'assets.height',
                 'assets.folderId',
+                'elements.dateCreated',
                 'folders.path as folderPath',
             ])
             ->from(['assets' => Table::ASSETS])
@@ -198,6 +217,18 @@ class SyncReconciler extends Component
                 'elements.dateDeleted' => null,
             ])
             ->all();
+    }
+
+    private function isWithinDeleteGracePeriod(?string $dateCreated): bool
+    {
+        if ($dateCreated === null || $dateCreated === '') {
+            return false;
+        }
+
+        $created = new \DateTimeImmutable($dateCreated, new \DateTimeZone('UTC'));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+        return $now->getTimestamp() - $created->getTimestamp() < self::DELETE_GRACE_SECONDS;
     }
 
     private function buildResourceKey(array $resource): string
