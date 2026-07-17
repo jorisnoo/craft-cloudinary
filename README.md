@@ -94,6 +94,8 @@ php craft cloudinary/remove-paths-from-public-ids/scan {volumeId}
 
 The sync command auto-detects all Cloudinary volumes and reconciles them with the Cloudinary Search API. It compares metadata (size, dimensions) and creates, updates, or deletes assets as needed. Ideal for cron jobs or catching up after missed webhooks.
 
+Craft's built-in Asset Indexes utility also works on Cloudinary volumes and uses the Search API as well (one request per 500 assets, instead of two Admin API calls per folder). Note that the Search index can lag a few seconds behind uploads, so assets uploaded moments before an indexing run may be reported as missing. Prefer `cloudinary/sync`, which guards against this with a grace period and deletion-ratio checks.
+
 ## Logging
 
 The plugin logs to `storage/logs/cloudinary-YYYY-MM-DD.log` with daily rotation (30 days retained, 10MB max per file). Sensitive data (API keys, signatures) is automatically masked in logs.
