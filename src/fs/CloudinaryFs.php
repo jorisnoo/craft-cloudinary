@@ -12,7 +12,6 @@ use League\Flysystem\FilesystemAdapter;
 use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
 use Noo\CraftCloudinary\helpers\FsListings;
-use ThomasVantuycom\FlysystemCloudinary\CloudinaryAdapter;
 
 class CloudinaryFs extends FlysystemFs
 {
@@ -114,18 +113,24 @@ class CloudinaryFs extends FlysystemFs
 
     public function write(string $path, string $contents, array $config = []): void
     {
-        $publicId = pathinfo(basename($path), PATHINFO_FILENAME);
-        CloudinaryPlugin::getInstance()->syncGuard->markUploaded($publicId);
+        $this->markUploaded($path);
 
         parent::write($path, $contents, $config);
     }
 
     public function writeFileFromStream(string $path, $stream, array $config = []): void
     {
-        $publicId = pathinfo(basename($path), PATHINFO_FILENAME);
-        CloudinaryPlugin::getInstance()->syncGuard->markUploaded($publicId);
+        $this->markUploaded($path);
 
         parent::writeFileFromStream($path, $stream, $config);
+    }
+
+    private function markUploaded(string $path): void
+    {
+        CloudinaryPlugin::getInstance()->syncGuard->markUploaded(
+            App::parseEnv($this->cloudName),
+            basename($path),
+        );
     }
 
     public function getCloudinaryFilesystem(): Filesystem
@@ -135,11 +140,7 @@ class CloudinaryFs extends FlysystemFs
 
     protected function createAdapter(): FilesystemAdapter
     {
-        $client = $this->getClient();
-
-        return new CloudinaryAdapter(
-            client: $client,
-        );
+        return new LocalUrlAdapter($this->getClient());
     }
 
     protected function invalidateCdnPath(string $path): bool

@@ -25,18 +25,25 @@ class SyncGuard extends Component
         return $this->processingWebhook;
     }
 
-    public function markUploaded(string $publicId): void
+    /**
+     * Keys on the filename (with extension) rather than the public ID, so
+     * raw files - whose public IDs keep the extension - hash the same from
+     * both the fs write and the webhook. Scoped by cloud name so equally
+     * named uploads to different Cloudinary accounts can't suppress each
+     * other's webhooks.
+     */
+    public function markUploaded(string $cloudName, string $filename): void
     {
         Craft::$app->getCache()->set(
-            $this->uploadCacheKey($publicId),
+            $this->uploadCacheKey($cloudName, $filename),
             true,
             300,
         );
     }
 
-    public function wasUploadedFromCraft(string $publicId): bool
+    public function wasUploadedFromCraft(string $cloudName, string $filename): bool
     {
-        $key = $this->uploadCacheKey($publicId);
+        $key = $this->uploadCacheKey($cloudName, $filename);
 
         if (!Craft::$app->getCache()->get($key)) {
             return false;
@@ -47,8 +54,8 @@ class SyncGuard extends Component
         return true;
     }
 
-    private function uploadCacheKey(string $publicId): string
+    private function uploadCacheKey(string $cloudName, string $filename): string
     {
-        return "cloudinary:uploaded:{$publicId}";
+        return "cloudinary:uploaded:{$cloudName}:{$filename}";
     }
 }

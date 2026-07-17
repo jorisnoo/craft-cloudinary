@@ -10,6 +10,8 @@ use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\ImageTransforms;
+use Noo\CraftCloudinary\helpers\PublicIds;
+use Noo\CraftCloudinary\helpers\ResourceTypes;
 
 class CloudinaryTransformer extends Component implements ImageTransformerInterface
 {
@@ -46,9 +48,10 @@ class CloudinaryTransformer extends Component implements ImageTransformerInterfa
         }
 
         try {
-            $publicId = pathinfo(basename($asset->getPath()), PATHINFO_FILENAME);
-            $fs->getClient()->uploadApi()->explicit($publicId, [
+            $path = $asset->getPath();
+            $fs->getClient()->uploadApi()->explicit(PublicIds::fromPath($path), [
                 'type' => 'upload',
+                'resource_type' => ResourceTypes::fromPath($path),
                 'invalidate' => true,
             ]);
         } catch (\Throwable $e) {

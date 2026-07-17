@@ -6,15 +6,19 @@ use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\elements\Asset;
 use craft\elements\db\AssetQuery;
+use craft\helpers\App;
 use craft\services\Assets;
 use craft\services\Volumes;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\AssetFolders;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
 
 abstract class BaseCloudinaryAction
 {
     private ?string $volumeSubpath = null;
+
+    private ?string $cloudName = null;
 
     public function __construct(public int $volumeId)
     {
@@ -42,6 +46,16 @@ abstract class BaseCloudinaryAction
         return $this->volumeSubpath ??= $this->volumesService()
             ->getVolumeById($this->volumeId)
             ?->getSubpath(false) ?? '';
+    }
+
+    protected function cloudName(): string
+    {
+        if ($this->cloudName === null) {
+            $fs = $this->volumesService()->getVolumeById($this->volumeId)?->getFs();
+            $this->cloudName = $fs instanceof CloudinaryFs ? App::parseEnv($fs->cloudName) : '';
+        }
+
+        return $this->cloudName;
     }
 
     protected function logSkippedOutsideSubpath(string $subject, string $assetFolder): void

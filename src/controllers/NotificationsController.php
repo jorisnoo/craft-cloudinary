@@ -47,13 +47,29 @@ class NotificationsController extends Controller
 
         $signature = $this->request->getHeaders()->get('X-Cld-Signature');
         $timestamp = (int) $this->request->getHeaders()->get('X-Cld-Timestamp');
+        $publicId = $this->request->getBodyParam('public_id');
 
-        if ($this->isDuplicateWebhook($signature)) {
+        // Claiming the signature before processing (backed by the unique
+        // index on signatureHash) keeps concurrent duplicate deliveries from
+        // both getting past a check-then-log race.
+        if (!$this->claimWebhook($signature, $notificationType, $publicId, $timestamp)) {
             return $this->asSuccess();
         }
 
-        $publicId = $this->request->getBodyParam('public_id');
+        try {
+            $this->processNotification($notificationType, $volumeId);
+        } catch (\Throwable $e) {
+            // Give the claim back so Cloudinary's retry isn't treated as a
+            // duplicate of this failed attempt.
+            $this->releaseWebhook($signature);
+            throw $e;
+        }
 
+        return $this->asSuccess();
+    }
+
+    protected function processNotification(string $notificationType, int|string $volumeId): void
+    {
         Cloudinary::getInstance()->syncGuard->whileProcessingWebhook(function() use ($notificationType, $volumeId) {
             match ($notificationType) {
 
@@ -112,29 +128,16 @@ class NotificationsController extends Controller
                 default => Cloudinary::log("Unknown notification type: {$notificationType}", 'warning'),
             };
         });
-
-        $this->logWebhook($signature, $notificationType, $publicId, $timestamp);
-
-        return $this->asSuccess();
     }
 
-    protected function isDuplicateWebhook(?string $signature): bool
+    /**
+     * Records the webhook before it is processed. Returns false when another
+     * delivery of the same webhook already holds the claim.
+     */
+    protected function claimWebhook(?string $signature, string $notificationType, ?string $publicId, int $timestamp): bool
     {
         if ($signature === null) {
-            return false;
-        }
-
-        $hash = hash('sha256', $signature);
-
-        return WebhookLogRecord::find()
-            ->where(['signatureHash' => $hash])
-            ->exists();
-    }
-
-    protected function logWebhook(?string $signature, string $notificationType, ?string $publicId, int $timestamp): void
-    {
-        if ($signature === null) {
-            return;
+            return true;
         }
 
         $record = new WebhookLogRecord();
@@ -143,7 +146,12 @@ class NotificationsController extends Controller
         $record->publicId = $publicId;
         $record->cloudinaryTimestamp = $timestamp;
         $record->processedAt = (new DateTime())->format('Y-m-d H:i:s');
-        $record->save(false);
+
+        try {
+            $record->save(false);
+        } catch (\yii\db\IntegrityException) {
+            return false;
+        }
 
         // Prune entries older than 48 hours (1 in 10 chance)
         if (random_int(1, 10) === 1) {
@@ -151,6 +159,17 @@ class NotificationsController extends Controller
                 ->delete('{{%cloudinary_webhook_log}}', ['<', 'processedAt', (new DateTime('-48 hours'))->format('Y-m-d H:i:s')])
                 ->execute();
         }
+
+        return true;
+    }
+
+    protected function releaseWebhook(?string $signature): void
+    {
+        if ($signature === null) {
+            return;
+        }
+
+        WebhookLogRecord::deleteAll(['signatureHash' => hash('sha256', $signature)]);
     }
 
     protected function verifyVolume($volumeId): CloudinaryFs

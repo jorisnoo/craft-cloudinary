@@ -57,7 +57,7 @@ class CloudinaryUrlBehavior extends Behavior
 
     public function defineUrl(DefineAssetUrlEvent $event): void
     {
-        if (!str_starts_with($event->url, 'https://res.cloudinary.com')) {
+        if (!str_starts_with($event->url ?? '', 'https://res.cloudinary.com')) {
             $event->url = $this->getCloudinaryUrl();
         }
     }
