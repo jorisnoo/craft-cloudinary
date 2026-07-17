@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.2.1) (2026-07-17)
+
+### Features
+
+- use Cloudinary Search API for filesystem listings ([e18a6d1](https://github.com/jorisnoo/craft-cloudinary/commit/e18a6d1d4ac3a827309835b5e7e63522b4d4a140))
+- add grace period to prevent deleting recently created assets during reconciliation ([df20aab](https://github.com/jorisnoo/craft-cloudinary/commit/df20aab32b93a26bdb7b599c53167d6e78528458))
+- scope asset operations to volume subpath ([2b6c36b](https://github.com/jorisnoo/craft-cloudinary/commit/2b6c36b96d11fe0b847d9cca738427b3a51a3a5e))
+- scope reconciler listing to volume subpath with relative folders ([8f81edc](https://github.com/jorisnoo/craft-cloudinary/commit/8f81edcb047aef9afa2fbef69298dc2fa1a00fc9))
+
+### Code Refactoring
+
+- generate delivery URLs locally and claim webhooks for deduplication ([19dec21](https://github.com/jorisnoo/craft-cloudinary/commit/19dec21095b228718e9a27ab61d84cf759998b12))
+- use Cloudinary Search API for asset discovery ([619cc76](https://github.com/jorisnoo/craft-cloudinary/commit/619cc763be818c00e8541ed29b9fbcaf0551280a))
+
+### Chores
+
+- add justfile and stop tracking composer.lock ([cd94586](https://github.com/jorisnoo/craft-cloudinary/commit/cd94586a8cb814a8944728710739624a9cbe2f81))
 ## [2.2.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.2.0) (2026-07-17)
 
 ### Features
