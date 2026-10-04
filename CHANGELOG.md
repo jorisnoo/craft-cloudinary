@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.2.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.2.1) (2026-07-17)
+## [2.2.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.2.1) (2026-07-17)
 
 ### Features
 
@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
 ### Chores
 
 - add justfile and stop tracking composer.lock ([cd94586](https://github.com/jorisnoo/craft-cloudinary/commit/cd94586a8cb814a8944728710739624a9cbe2f81))
-## [2.2.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.2.0) (2026-07-17)
+## [2.2.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.2.0) (2026-07-17)
 
 ### Features
 
@@ -36,7 +36,7 @@ All notable changes to this project will be documented in this file.
 ### Chores
 
 - add justfile and stop tracking composer.lock ([cd94586](https://github.com/jorisnoo/craft-cloudinary/commit/cd94586a8cb814a8944728710739624a9cbe2f81))
-## [2.1.2](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.2) (2026-04-13)
+## [2.1.2](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.1.2) (2026-04-13)
 
 ### Features
 
@@ -46,7 +46,7 @@ All notable changes to this project will be documented in this file.
 ### Reverts
 
 - remove cloudinary/recover commands ([f51957a](https://github.com/jorisnoo/craft-cloudinary/commit/f51957aaff48a2385b6e2c30df8b98a46f9d3c13))
-## [2.1.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.1) (2026-04-13)
+## [2.1.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.1.1) (2026-04-13)
 
 ### Features
 
@@ -55,7 +55,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - strip external Cloudinary package update notifications ([09983ee](https://github.com/jorisnoo/craft-cloudinary/commit/09983eebc10c4c7d75b6412a2db5af8225948350))
-## [2.1.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.1.0) (2026-04-09)
+## [2.1.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.1.0) (2026-04-09)
 
 ### Features
 
@@ -80,7 +80,7 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - update sync command documentation and fix search expression ([e6b68a1](https://github.com/jorisnoo/craft-cloudinary/commit/e6b68a19cae50f14f7f1ca7f7715784574bc1614))
-## [2.0.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v2.0.0) (2026-03-31)
+## [2.0.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.0.0) (2026-03-31)
 
 ### ⚠ BREAKING CHANGES
 
@@ -111,12 +111,12 @@ All notable changes to this project will be documented in this file.
 
 - remove phpstan script and minimum-stability configuration ([224d895](https://github.com/jorisnoo/craft-cloudinary/commit/224d89584073b8fc5a205bdd0edfbe3fdfe5c22e))
 - upgrade Cloudinary dependencies to v3 and stabilize flysystem-cloudinary package ([ca270eb](https://github.com/jorisnoo/craft-cloudinary/commit/ca270ebca7be2f84456983766795a1268c219e7a))
-## [1.9.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.1) (2026-03-10)
+## [1.9.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/1.9.1) (2026-03-10)
 
 ### Features
 
 - support syncing all Cloudinary volumes and add optional volume ID parameter to sync command ([8df7da5](https://github.com/jorisnoo/craft-cloudinary/commit/8df7da52aaa1d6bd04c4f1c4a4b5aa97a0af1f6f))
-## [1.9.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/v1.9.0) (2026-03-10)
+## [1.9.0](https://github.com/jorisnoo/craft-cloudinary/releases/tag/1.9.0) (2026-03-10)
 
 ### Features
 

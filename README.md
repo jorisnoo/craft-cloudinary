@@ -99,3 +99,7 @@ Craft's built-in Asset Indexes utility also works on Cloudinary volumes and uses
 ## Logging
 
 The plugin logs to `storage/logs/cloudinary-YYYY-MM-DD.log` with daily rotation (30 days retained, 10MB max per file). Sensitive data (API keys, signatures) is automatically masked in logs.
+
+## Maintainer releases
+
+See [RELEASING.md](RELEASING.md) for versioning, changelog entries and the release command.

@@ -1,0 +1,10 @@
+{
+  "branch": "main",
+  "sign_tag": true,
+  "version_files": [],
+  "checks": [
+    [
+      "vendor/bin/pest"
+    ]
+  ]
+}
