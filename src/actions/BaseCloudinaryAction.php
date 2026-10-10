@@ -12,7 +12,9 @@ use craft\services\Volumes;
 use Noo\CraftCloudinary\Cloudinary;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\AssetFolders;
+use Noo\CraftCloudinary\helpers\PublicIds;
 use Noo\CraftCloudinary\jobs\RemovePathFromCloudinaryPublicId;
+use Noo\CraftCloudinary\services\SyncGuard;
 
 abstract class BaseCloudinaryAction
 {
@@ -58,6 +60,42 @@ abstract class BaseCloudinaryAction
         return $this->cloudName;
     }
 
+    /**
+     * Whether Craft itself made this change in Cloudinary recently, so the
+     * webhook only echoes it. See SyncGuard::markChangedFromCraft().
+     */
+    protected function wasChangedFromCraft(string $subject): bool
+    {
+        $syncGuard = Cloudinary::getInstance()?->syncGuard;
+
+        return $syncGuard !== null && $syncGuard->wasChangedFromCraft($this->cloudName(), $subject);
+    }
+
+    /**
+     * Folder changes made from Craft also cover their subfolders.
+     *
+     * @param ?string $folderPath absolute Cloudinary folder path
+     */
+    protected function folderWasChangedFromCraft(?string $folderPath): bool
+    {
+        $folderPath = trim((string) $folderPath, '/');
+
+        while ($folderPath !== '' && $folderPath !== '.') {
+            if ($this->wasChangedFromCraft(SyncGuard::folderKey($folderPath))) {
+                return true;
+            }
+
+            $folderPath = dirname($folderPath);
+        }
+
+        return false;
+    }
+
+    protected function logSkippedCraftChange(string $subject): void
+    {
+        Cloudinary::log("Skipping webhook for {$subject} - the change was made from Craft");
+    }
+
     protected function logSkippedOutsideSubpath(string $subject, string $assetFolder): void
     {
         Cloudinary::log(
@@ -78,6 +116,24 @@ abstract class BaseCloudinaryAction
 
     public function queryAsset(string $publicId, ?string $path, string $resourceType): ?Asset
     {
+        $assets = $this->queryAssets($publicId, $path, $resourceType);
+
+        if (count($assets) > 1) {
+            $this->logAmbiguousAsset($publicId, $this->formatPath($path), $resourceType);
+            return null;
+        }
+
+        return $assets[0] ?? null;
+    }
+
+    /**
+     * All Craft assets in the folder stored as the given Cloudinary asset.
+     * Usually one, but earlier versions could create duplicates.
+     *
+     * @return Asset[]
+     */
+    public function queryAssets(string $publicId, ?string $path, string $resourceType): array
+    {
         $path = $this->formatPath($path);
 
         // findFolder() ignores an empty path criteria, so the root folder
@@ -90,7 +146,7 @@ abstract class BaseCloudinaryAction
             ]);
 
         if ($folder === null) {
-            return null;
+            return [];
         }
 
         $filename = $this->formatFilename($publicId, $resourceType);
@@ -99,25 +155,20 @@ abstract class BaseCloudinaryAction
             $filename .= '.*';
         }
 
-        $assetQuery = $this->createAssetQuery()
+        $candidates = $this->createAssetQuery()
             ->volumeId($this->volumeId)
             ->filename($filename)
-            ->folderId($folder->id);
+            ->folderId($folder->id)
+            ->all();
 
-        if ($resourceType === AssetType::IMAGE) {
-            $assetQuery->kind('image');
-        } elseif ($resourceType !== AssetType::RAW) {
-            $assetQuery->kind(['video', 'audio']);
-        }
-
-        $assets = $assetQuery->limit(2)->all();
-
-        if (count($assets) > 1) {
-            $this->logAmbiguousAsset($publicId, $path, $resourceType);
-            return null;
-        }
-
-        return $assets[0] ?? null;
+        // The filename pattern also matches files stored under another
+        // resource type (photo.zip for image "photo"), so keep only the
+        // assets stored as this exact Cloudinary asset.
+        $key = PublicIds::keyFromResource($resourceType, $publicId);
+        return array_values(array_filter(
+            $candidates,
+            static fn(Asset $asset) => PublicIds::keyFromPath((string) $asset->getFilename()) === $key,
+        ));
     }
 
     protected function assetsService(): Assets

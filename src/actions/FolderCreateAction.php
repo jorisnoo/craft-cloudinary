@@ -11,6 +11,11 @@ class FolderCreateAction extends BaseCloudinaryAction
      */
     public function createFromWebhook(?string $folderPath): ?VolumeFolder
     {
+        if ($this->folderWasChangedFromCraft($folderPath)) {
+            $this->logSkippedCraftChange("folder creation of '{$folderPath}'");
+            return null;
+        }
+
         $relativePath = $this->relativeAssetFolder($folderPath);
 
         if ($relativePath === null) {

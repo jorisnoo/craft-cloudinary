@@ -14,11 +14,18 @@ class FsListings
      * the asset folders of the resources, so folders without any assets
      * never appear, matching the reconciler's behavior.
      *
+     * A filename can't be rebuilt reliably from a resource: Cloudinary
+     * reports the detected format, not the uploaded extension. When Craft
+     * already has an asset stored as the resource, its filename is listed,
+     * so the indexer doesn't treat `photo.jpeg` as missing and `photo.jpg`
+     * as new.
+     *
      * @param iterable<array> $resources
      * @param string $directory absolute path of the listed directory
+     * @param array<string, string> $knownFilenames Craft filenames by knownFilenameKey()
      * @return \Generator<int, FsListing>
      */
-    public static function fromResources(iterable $resources, string $directory, bool $recursive): \Generator
+    public static function fromResources(iterable $resources, string $directory, bool $recursive, array $knownFilenames = []): \Generator
     {
         $directory = trim($directory, '/');
         $seenFolders = [];
@@ -50,18 +57,36 @@ class FsListings
             }
 
             if ($recursive || $relativeFolder === '') {
-                yield self::fileListing($resource, $folder);
+                yield self::fileListing($resource, $folder, $knownFilenames);
             }
         }
     }
 
-    private static function fileListing(array $resource, string $folder): FsListing
+    /**
+     * @param string $folder absolute Cloudinary folder path
+     * @param string $assetKey see PublicIds::key()
+     */
+    public static function knownFilenameKey(string $folder, string $assetKey): string
     {
-        $filename = basename($resource['public_id']);
-        $format = $resource['format'] ?? null;
+        return trim($folder, '/') . '|' . $assetKey;
+    }
 
-        if (($resource['resource_type'] ?? '') !== 'raw' && $format) {
-            $filename .= ".{$format}";
+    private static function fileListing(array $resource, string $folder, array $knownFilenames): FsListing
+    {
+        $knownFilename = $knownFilenames[self::knownFilenameKey(
+            $folder,
+            PublicIds::keyFromResource($resource['resource_type'] ?? '', $resource['public_id'], $resource['format'] ?? null),
+        )] ?? null;
+
+        if ($knownFilename !== null) {
+            $filename = $knownFilename;
+        } else {
+            $filename = basename($resource['public_id']);
+            $format = $resource['format'] ?? null;
+
+            if (($resource['resource_type'] ?? '') !== 'raw' && $format) {
+                $filename .= ".{$format}";
+            }
         }
 
         $path = $folder === '' ? $filename : "{$folder}/{$filename}";

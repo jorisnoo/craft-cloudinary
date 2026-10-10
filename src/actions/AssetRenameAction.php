@@ -4,6 +4,7 @@ namespace Noo\CraftCloudinary\actions;
 
 use Cloudinary\Asset\AssetType;
 use Craft;
+use Noo\CraftCloudinary\helpers\PublicIds;
 
 class AssetRenameAction extends BaseCloudinaryAction
 {
@@ -18,6 +19,14 @@ class AssetRenameAction extends BaseCloudinaryAction
 
         if ($path === null) {
             $this->logSkippedOutsideSubpath("rename of '{$fromPublicId}'", $assetFolder);
+            return;
+        }
+
+        if (
+            $this->wasChangedFromCraft(PublicIds::keyFromResource($resourceType, $fromPublicId)) ||
+            $this->wasChangedFromCraft(PublicIds::keyFromResource($resourceType, $toPublicId))
+        ) {
+            $this->logSkippedCraftChange("rename of '{$fromPublicId}'");
             return;
         }
 

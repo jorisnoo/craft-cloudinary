@@ -8,10 +8,9 @@ class ResourceTypes
 {
     /**
      * Maps a filesystem path to the Cloudinary resource type the adapter
-     * uploads it as. Mirrors CloudinaryAdapter::resourceType(), which is
-     * private - the mapping must stay identical, because API calls and
-     * delivery URLs for an asset only work with the resource type it was
-     * uploaded under.
+     * uploads it as. API calls and delivery URLs for an asset only work with
+     * the resource type it was uploaded under, so everything in the plugin
+     * must resolve resource types through this class.
      */
     private const EXTENSION_MAP = [
         // Image formats
@@ -90,8 +89,9 @@ class ResourceTypes
 
     public static function fromPath(string $path): string
     {
-        // Case-sensitive on purpose: the adapter's lookup is too, so an
-        // uppercase extension is uploaded as raw and must be typed as raw.
+        // Case-sensitive on purpose: files with uppercase extensions have
+        // always been uploaded as raw, and changing that would break the
+        // URLs of every such file already in Cloudinary.
         $extension = pathinfo($path, PATHINFO_EXTENSION);
 
         return self::EXTENSION_MAP[$extension] ?? AssetType::RAW;

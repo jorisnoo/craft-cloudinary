@@ -4,6 +4,7 @@ namespace Noo\CraftCloudinary\actions;
 
 use Craft;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\helpers\PublicIds;
 
 class AssetMoveAction extends BaseCloudinaryAction
 {
@@ -14,6 +15,12 @@ class AssetMoveAction extends BaseCloudinaryAction
     {
         foreach ($resources as $publicId => $resource) {
             $resourceType = $resource['resource_type'];
+
+            if ($this->wasChangedFromCraft(PublicIds::keyFromResource($resourceType, $publicId))) {
+                $this->logSkippedCraftChange("move of '{$publicId}'");
+                continue;
+            }
+
             $fromFolder = $this->relativeAssetFolder($resource['from_asset_folder'] ?? '');
             $toFolder = $this->relativeAssetFolder($resource['to_asset_folder'] ?? '');
 

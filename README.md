@@ -2,7 +2,7 @@
 
 This plugin integrates [Cloudinary](https://cloudinary.com/) with [Craft CMS](https://craftcms.com/). Assets can be uploaded from Craft's control panel and then transformed and delivered by Cloudinary, even if stored in a different filesystem. The plugin is compatible with your existing Craft template code and named image transforms.
 
-This is a fork of [thomasvantuycom/craft-cloudinary](https://github.com/thomasvantuycom/craft-cloudinary) with additional features including webhook synchronization, daily log rotation, and improved error handling.
+This is a fork of [thomasvantuycom/craft-cloudinary](https://github.com/thomasvantuycom/craft-cloudinary) with additional features including webhook synchronization, a dedicated log file, and improved error handling. It ships its own Flysystem adapter, based on [thomasvantuycom/flysystem-cloudinary](https://github.com/thomasvantuycom/flysystem-cloudinary), and supports Cloudinary's dynamic folders mode only.
 
 ## Version Strategy
 
@@ -69,6 +69,8 @@ Replace `{VOLUME_ID}` with your asset volume ID.
 
 > **Important:** Do not move or rename the Cloudinary folder configured as the volume's root subpath. Doing so moves the entire volume outside Craft's configured scope. Moving or renaming folders below that root is supported.
 
+Changes made from Craft also trigger webhooks. Craft updates its own records for those, so webhooks echoing an upload, move, rename or folder change made from Craft in the last 5 minutes are skipped. A change made directly in Cloudinary to the same asset or folder within that window is picked up by the next `cloudinary/sync`.
+
 ### Supported notification types
 
 - `upload` — creates assets in Craft
@@ -98,7 +100,7 @@ Craft's built-in Asset Indexes utility also works on Cloudinary volumes and uses
 
 ## Logging
 
-The plugin logs to `storage/logs/cloudinary-YYYY-MM-DD.log` with daily rotation (30 days retained, 10MB max per file). Sensitive data (API keys, signatures) is automatically masked in logs.
+The plugin logs to `storage/logs/cloudinary.log`. The file is rotated when it reaches 10MB, and up to 30 rotated files are kept.
 
 ## Maintainer releases
 

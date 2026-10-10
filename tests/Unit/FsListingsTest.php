@@ -108,4 +108,24 @@ describe('FsListings::fromResources', function() {
         expect($listings[0]->getFileSize())->toBeNull();
         expect($listings[0]->getDateModified())->toBeNull();
     });
+
+    it('lists the Craft filename when Craft already has the asset', function() {
+        $resources = [makeResource(['public_id' => 'photo', 'format' => 'jpg', 'asset_folder' => 'sub'])];
+        $known = [FsListings::knownFilenameKey('sub', 'image:photo') => 'photo.jpeg'];
+
+        $listings = iterator_to_array(FsListings::fromResources($resources, '', true, $known), false);
+        $files = array_values(array_filter($listings, fn($l) => !$l->getIsDir()));
+
+        expect($files[0]->getUri())->toBe('sub/photo.jpeg');
+    });
+
+    it('ignores known filenames from other folders', function() {
+        $resources = [makeResource(['public_id' => 'photo', 'format' => 'jpg', 'asset_folder' => 'sub'])];
+        $known = [FsListings::knownFilenameKey('other', 'image:photo') => 'photo.jpeg'];
+
+        $listings = iterator_to_array(FsListings::fromResources($resources, '', true, $known), false);
+        $files = array_values(array_filter($listings, fn($l) => !$l->getIsDir()));
+
+        expect($files[0]->getUri())->toBe('sub/photo.jpg');
+    });
 });

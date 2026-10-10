@@ -34,7 +34,16 @@ class CloudinaryUtility extends Utility
         ]);
     }
 
+    /**
+     * Cached briefly: each check costs an Admin API call, which counts
+     * against the same rate limit it reports.
+     */
     public static function getRateLimits(): array
+    {
+        return Craft::$app->getCache()->getOrSet('cloudinary:rateLimits', static fn() => self::fetchRateLimits(), 60);
+    }
+
+    private static function fetchRateLimits(): array
     {
         $limits = [];
 

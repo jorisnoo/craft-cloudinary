@@ -8,6 +8,7 @@ use craft\events\DefineAssetUrlEvent;
 use craft\events\GenerateTransformEvent;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\ImageTransforms;
+use Noo\CraftCloudinary\helpers\ResourceTypes;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use yii\base\Behavior;
 use yii\base\InvalidConfigException;
@@ -93,7 +94,12 @@ class CloudinaryUrlBehavior extends Behavior
             }
         }
 
-        $resourceType = $this->_getResourceType();
+        // Stored files must use the resource type the adapter uploaded them
+        // as, which follows the extension rather than the MIME type (an
+        // `.mpg` is uploaded as raw even though its MIME type is video).
+        $resourceType = $hasCloudinaryFs
+            ? ResourceTypes::fromPath($asset->getPath())
+            : $this->_getResourceType();
 
         /**
          * @var CloudinaryFs $fsWithConfig
@@ -114,6 +120,38 @@ class CloudinaryUrlBehavior extends Behavior
         }
 
         return $resource->toUrl();
+    }
+
+    /**
+     * Control panel thumbnail URL, or null when Cloudinary can't render the
+     * asset as an image and Craft should show its file icon instead.
+     */
+    public function getCloudinaryThumbUrl(int $width, int $height): ?string
+    {
+        $volume = $this->owner->getVolume();
+        $resourceType = $volume->getFs() instanceof CloudinaryFs
+            ? ResourceTypes::fromPath($this->owner->getPath())
+            : $this->_getResourceType();
+
+        $transform = [
+            'width' => $width,
+            'height' => $height,
+            'crop' => 'fill',
+            'gravity' => 'auto',
+            'quality' => 'auto',
+        ];
+
+        if ($resourceType === AssetType::IMAGE) {
+            return $this->getCloudinaryUrl($transform + ['fetch_format' => 'auto']);
+        }
+
+        // Videos stored in Cloudinary get a frame as a JPEG. Fetch delivery
+        // doesn't support video, and raw files can't be transformed.
+        if ($resourceType === AssetType::VIDEO && $volume->getFs() instanceof CloudinaryFs) {
+            return $this->getCloudinaryUrl($transform + ['format' => 'jpg']);
+        }
+
+        return null;
     }
 
     private function _getResourceType(): string

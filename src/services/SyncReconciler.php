@@ -13,14 +13,16 @@ use Noo\CraftCloudinary\exceptions\ReconciliationAbortedException;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\AssetFolders;
 use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
+use Noo\CraftCloudinary\helpers\PublicIds;
 use yii\base\Component;
 
 class SyncReconciler extends Component
 {
     private const MAX_DELETE_RATIO = 0.10;
 
-    // The Search API index can lag a few seconds behind uploads, so recently
-    // created Craft assets may be missing from the results. Don't delete them.
+    // The Search API index can lag behind uploads, so recently created Craft
+    // assets may be missing from the results. Don't delete them. The window
+    // is generous on purpose: deleting an asset loses its relations.
     private const DELETE_GRACE_SECONDS = 3600;
 
     public function reconcile(int $volumeId, bool $dryRun = false, bool $force = false): array
@@ -67,16 +69,24 @@ class SyncReconciler extends Component
             $cloudinaryIndex[$key] = $resource;
         }
 
+        // Several Craft assets can point at the same Cloudinary asset, e.g.
+        // duplicates created by earlier versions for `.jpeg` uploads. All of
+        // them count as present - choosing one to delete could drop the one
+        // with relations.
         $craftIndex = [];
         foreach ($craftAssets as $craftAsset) {
-            $key = $craftAsset['folderPath'] . $craftAsset['filename'];
-            $craftIndex[$key] = $craftAsset;
+            $key = $this->buildCraftAssetKey($craftAsset);
+            $craftIndex[$key][] = $craftAsset;
         }
 
         $toDelete = [];
         $inGracePeriod = 0;
-        foreach ($craftIndex as $key => $craftAsset) {
-            if (!isset($cloudinaryIndex[$key])) {
+        foreach ($craftIndex as $key => $craftAssetsForKey) {
+            if (isset($cloudinaryIndex[$key])) {
+                continue;
+            }
+
+            foreach ($craftAssetsForKey as $craftAsset) {
                 if ($this->isWithinDeleteGracePeriod($craftAsset['dateCreated'] ?? null)) {
                     $inGracePeriod++;
                     continue;
@@ -94,7 +104,7 @@ class SyncReconciler extends Component
             ));
         }
 
-        $craftCount = count($craftIndex);
+        $craftCount = count($craftAssets);
         $deleteRatio = $craftCount > 0 ? count($toDelete) / $craftCount : 0.0;
 
         if (!$force && $deleteRatio > self::MAX_DELETE_RATIO) {
@@ -122,13 +132,23 @@ class SyncReconciler extends Component
         // Assets in Cloudinary but not in Craft -> create
         foreach ($cloudinaryIndex as $key => $resource) {
             if (isset($craftIndex[$key])) {
-                if ($this->hasMetadataChanged($craftIndex[$key], $resource)) {
-                    if (!$dryRun) {
-                        $this->updateCraftAsset($craftIndex[$key], $resource);
+                if (count($craftIndex[$key]) > 1) {
+                    Cloudinary::log(sprintf(
+                        "Reconciler: Craft assets %s all point at Cloudinary asset '%s' - keeping all of them, remove the duplicates manually",
+                        implode(',', array_column($craftIndex[$key], 'id')),
+                        $resource['public_id'],
+                    ), 'warning');
+                }
+
+                foreach ($craftIndex[$key] as $craftAsset) {
+                    if ($this->hasMetadataChanged($craftAsset, $resource)) {
+                        if (!$dryRun) {
+                            $this->updateCraftAsset($craftAsset, $resource);
+                        }
+                        $stats['updated']++;
+                    } else {
+                        $stats['unchanged']++;
                     }
-                    $stats['updated']++;
-                } else {
-                    $stats['unchanged']++;
                 }
                 continue;
             }
@@ -231,24 +251,28 @@ class SyncReconciler extends Component
         return $now->getTimestamp() - $created->getTimestamp() < self::DELETE_GRACE_SECONDS;
     }
 
+    /**
+     * Keys on the public ID rather than a filename rebuilt from the format,
+     * which wouldn't match Craft's filename when Cloudinary reports a format
+     * other than the uploaded extension (`photo.jpeg` has format `jpg`).
+     */
     private function buildResourceKey(array $resource): string
     {
-        $publicId = $resource['public_id'];
-        $resourceType = $resource['resource_type'];
-        $format = $resource['format'] ?? null;
-        $assetFolder = $resource['asset_folder'] ?? '';
+        return $this->folderPrefix($resource['asset_folder'] ?? '')
+            . PublicIds::keyFromResource($resource['resource_type'], $resource['public_id'], $resource['format'] ?? null);
+    }
 
-        $filename = basename($publicId);
-        if ($resourceType !== 'raw' && $format) {
-            $filename .= ".{$format}";
-        }
+    private function buildCraftAssetKey(array $craftAsset): string
+    {
+        return $this->folderPrefix($craftAsset['folderPath'] ?? '')
+            . PublicIds::keyFromPath($craftAsset['filename']);
+    }
 
-        $folderPath = '';
-        if ($assetFolder !== '') {
-            $folderPath = trim($assetFolder, '/.') . '/';
-        }
+    private function folderPrefix(?string $folderPath): string
+    {
+        $folderPath = trim((string) $folderPath, '/.');
 
-        return $folderPath . $filename;
+        return $folderPath === '' ? '' : $folderPath . '/';
     }
 
     private function hasMetadataChanged(array $craftAsset, array $cloudinaryResource): bool

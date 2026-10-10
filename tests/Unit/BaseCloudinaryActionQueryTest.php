@@ -64,8 +64,6 @@ class RecordingAssetQuery extends AssetQuery
     public mixed $requestedVolumeId = null;
     public mixed $requestedFilename = null;
     public mixed $requestedFolderId = null;
-    public mixed $requestedKind = null;
-    public mixed $requestedLimit = null;
 
     public function __construct(private readonly array $results)
     {
@@ -88,20 +86,6 @@ class RecordingAssetQuery extends AssetQuery
     public function folderId(mixed $value): static
     {
         $this->requestedFolderId = $value;
-
-        return $this;
-    }
-
-    public function kind(mixed $value): static
-    {
-        $this->requestedKind = $value;
-
-        return $this;
-    }
-
-    public function limit($limit): static
-    {
-        $this->requestedLimit = $limit;
 
         return $this;
     }
@@ -131,8 +115,16 @@ function queryTestAction(
     return [new QueryTestAction(7, $assets, $query), $assets, $query];
 }
 
+function queryTestAsset(string $filename): Asset
+{
+    $asset = test()->createMock(Asset::class);
+    $asset->method('getFilename')->willReturn($filename);
+
+    return $asset;
+}
+
 it('scopes root asset queries to the root folder id', function() {
-    $asset = $this->createMock(Asset::class);
+    $asset = queryTestAsset('photo.jpg');
     [$action, $assets, $query] = queryTestAction(queryTestFolder(10, ''), [$asset]);
 
     expect($action->queryAsset('photo', null, AssetType::IMAGE))->toBe($asset)
@@ -140,13 +132,11 @@ it('scopes root asset queries to the root folder id', function() {
         ->and($assets->criteria)->toBeNull()
         ->and($query->requestedVolumeId)->toBe(7)
         ->and($query->requestedFilename)->toBe('photo.*')
-        ->and($query->requestedFolderId)->toBe(10)
-        ->and($query->requestedKind)->toBe('image')
-        ->and($query->requestedLimit)->toBe(2);
+        ->and($query->requestedFolderId)->toBe(10);
 });
 
 it('scopes nested asset queries to the exact nested folder id', function() {
-    $asset = $this->createMock(Asset::class);
+    $asset = queryTestAsset('photo.jpg');
     [$action, $assets, $query] = queryTestAction(queryTestFolder(20, 'gallery/'), [$asset]);
 
     expect($action->queryAsset('photo', 'gallery', AssetType::IMAGE))->toBe($asset)
@@ -154,27 +144,51 @@ it('scopes nested asset queries to the exact nested folder id', function() {
         ->and($query->requestedFolderId)->toBe(20);
 });
 
-it('uses the video and audio kind constraint for video resources', function() {
-    $asset = $this->createMock(Asset::class);
+it('matches an extension that differs from the format Cloudinary reports', function() {
+    $asset = queryTestAsset('photo.jpeg');
+    [$action] = queryTestAction(queryTestFolder(10, ''), [$asset]);
+
+    expect($action->queryAsset('photo', '', AssetType::IMAGE))->toBe($asset);
+});
+
+it('matches video resources by extension', function() {
+    $asset = queryTestAsset('clip.mp4');
     [$action, , $query] = queryTestAction(queryTestFolder(20, 'media/'), [$asset]);
 
     expect($action->queryAsset('clip', 'media/', AssetType::VIDEO))->toBe($asset)
-        ->and($query->requestedFilename)->toBe('clip.*')
-        ->and($query->requestedKind)->toBe(['video', 'audio']);
+        ->and($query->requestedFilename)->toBe('clip.*');
 });
 
-it('matches raw resource filenames exactly without a kind constraint', function() {
-    $asset = $this->createMock(Asset::class);
+it('ignores files stored under another resource type', function() {
+    $image = queryTestAsset('photo.jpg');
+    $zip = queryTestAsset('photo.zip');
+    $uppercase = queryTestAsset('photo.JPG');
+    [$action] = queryTestAction(queryTestFolder(10, ''), [$zip, $uppercase, $image]);
+
+    expect($action->queryAsset('photo', '', AssetType::IMAGE))->toBe($image)
+        ->and($action->loggedAmbiguity)->toBeFalse();
+});
+
+it('matches raw resource filenames exactly', function() {
+    $asset = queryTestAsset('document.pdf');
     [$action, , $query] = queryTestAction(queryTestFolder(30, 'docs/'), [$asset]);
 
+    // A PDF uploaded to Cloudinary as raw becomes a Craft asset named
+    // document.pdf, which Craft would type as an image.
     expect($action->queryAsset('document.pdf', 'docs', AssetType::RAW))->toBe($asset)
-        ->and($query->requestedFilename)->toBe('document.pdf')
-        ->and($query->requestedKind)->toBeNull();
+        ->and($query->requestedFilename)->toBe('document.pdf');
+});
+
+it('matches raw resources', function() {
+    $asset = queryTestAsset('data.zip');
+    [$action] = queryTestAction(queryTestFolder(30, 'docs/'), [$asset]);
+
+    expect($action->queryAsset('data.zip', 'docs', AssetType::RAW))->toBe($asset);
 });
 
 it('refuses to choose between assets with different extensions', function() {
-    $jpg = $this->createMock(Asset::class);
-    $png = $this->createMock(Asset::class);
+    $jpg = queryTestAsset('photo.jpg');
+    $png = queryTestAsset('photo.png');
     [$action] = queryTestAction(queryTestFolder(10, ''), [$jpg, $png]);
 
     expect($action->queryAsset('photo', '', AssetType::IMAGE))->toBeNull()

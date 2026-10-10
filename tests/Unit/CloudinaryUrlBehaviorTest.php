@@ -144,3 +144,65 @@ it('rejects transform-only assets without a public source URL', function() {
     expect(fn() => $behavior->getCloudinaryUrl())
         ->toThrow(InvalidConfigException::class, 'Cloudinary fetch transforms require the source filesystem to provide a public asset URL.');
 });
+
+it('uses the resource type the file was uploaded as, not its MIME type', function() {
+    $cloudinaryFs = urlBehaviorCloudinaryFs();
+    // .mpg isn't in the adapter's video list, so it was uploaded as raw.
+    $asset = urlBehaviorAsset($cloudinaryFs, $cloudinaryFs, null, 'clips/intro.mpg', 'video/mpeg');
+    $behavior = new CloudinaryUrlBehavior();
+    $behavior->owner = $asset;
+
+    expect($behavior->getCloudinaryUrl())->toBe('https://res.cloudinary.com/demo/raw/upload/intro.mpg');
+});
+
+it('keeps MIME-based resource types for fetch delivery', function() {
+    $sourceFs = $this->createMock(FsInterface::class);
+    $asset = urlBehaviorAsset($sourceFs, urlBehaviorCloudinaryFs(), 'https://example.com/a.JPG', 'a.JPG');
+    $behavior = new CloudinaryUrlBehavior();
+    $behavior->owner = $asset;
+
+    expect($behavior->getCloudinaryUrl())->toContain('/image/fetch/');
+});
+
+describe('CloudinaryUrlBehavior::getCloudinaryThumbUrl', function() {
+    it('transforms images', function() {
+        $cloudinaryFs = urlBehaviorCloudinaryFs();
+        $behavior = new CloudinaryUrlBehavior();
+        $behavior->owner = urlBehaviorAsset($cloudinaryFs, $cloudinaryFs, null, 'photos/hero.jpg');
+
+        $url = $behavior->getCloudinaryThumbUrl(100, 80);
+
+        expect($url)->toContain('/image/upload/')
+            ->and($url)->toContain('w_100')
+            ->and($url)->toContain('h_80')
+            ->and($url)->toEndWith('/hero.jpg');
+    });
+
+    it('renders a video frame as a JPEG', function() {
+        $cloudinaryFs = urlBehaviorCloudinaryFs();
+        $behavior = new CloudinaryUrlBehavior();
+        $behavior->owner = urlBehaviorAsset($cloudinaryFs, $cloudinaryFs, null, 'clips/intro.mp4', 'video/mp4');
+
+        $url = $behavior->getCloudinaryThumbUrl(100, 80);
+
+        expect($url)->toContain('/video/upload/')
+            ->and($url)->toContain('w_100')
+            ->and($url)->toEndWith('/intro.jpg');
+    });
+
+    it('leaves raw files to Craft', function() {
+        $cloudinaryFs = urlBehaviorCloudinaryFs();
+        $behavior = new CloudinaryUrlBehavior();
+        $behavior->owner = urlBehaviorAsset($cloudinaryFs, $cloudinaryFs, null, 'docs/data.zip', 'application/zip');
+
+        expect($behavior->getCloudinaryThumbUrl(100, 80))->toBeNull();
+    });
+
+    it('leaves fetched videos to Craft', function() {
+        $sourceFs = $this->createMock(FsInterface::class);
+        $behavior = new CloudinaryUrlBehavior();
+        $behavior->owner = urlBehaviorAsset($sourceFs, urlBehaviorCloudinaryFs(), 'https://example.com/a.mp4', 'a.mp4', 'video/mp4');
+
+        expect($behavior->getCloudinaryThumbUrl(100, 80))->toBeNull();
+    });
+});

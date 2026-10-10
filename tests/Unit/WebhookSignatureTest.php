@@ -75,3 +75,17 @@ describe('WebhookSignature::verifyTimestamp', function() {
         WebhookSignature::verifyTimestamp((string) (time() - 7201));
     })->throws(BadRequestHttpException::class, 'Expired signature');
 });
+
+describe('WebhookSignature with missing headers', function() {
+    it('rejects a missing signature', function() {
+        WebhookSignature::verify('{}', (string) time(), null, 'secret');
+    })->throws(BadRequestHttpException::class, 'Missing signature');
+
+    it('rejects a missing timestamp', function() {
+        WebhookSignature::verify('{}', null, 'abc', 'secret');
+    })->throws(BadRequestHttpException::class, 'Missing signature');
+
+    it('rejects a missing timestamp before checking its age', function() {
+        WebhookSignature::verifyTimestamp(null);
+    })->throws(BadRequestHttpException::class, 'Missing timestamp');
+});

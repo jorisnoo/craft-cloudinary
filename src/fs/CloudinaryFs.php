@@ -4,6 +4,8 @@ namespace Noo\CraftCloudinary\fs;
 
 use Cloudinary\Cloudinary;
 use Craft;
+use craft\db\Query;
+use craft\db\Table;
 use craft\flysystem\base\FlysystemFs;
 use craft\helpers\App;
 use Generator;
@@ -12,6 +14,8 @@ use League\Flysystem\FilesystemAdapter;
 use Noo\CraftCloudinary\Cloudinary as CloudinaryPlugin;
 use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
 use Noo\CraftCloudinary\helpers\FsListings;
+use Noo\CraftCloudinary\helpers\PublicIds;
+use Noo\CraftCloudinary\services\SyncGuard;
 
 class CloudinaryFs extends FlysystemFs
 {
@@ -91,7 +95,45 @@ class CloudinaryFs extends FlysystemFs
             'created_at',
         ]);
 
-        yield from FsListings::fromResources($resources, $directory, $recursive);
+        yield from FsListings::fromResources($resources, $directory, $recursive, $this->knownFilenames());
+    }
+
+    /**
+     * Filenames of the Craft assets stored in this filesystem, keyed by
+     * FsListings::knownFilenameKey().
+     *
+     * @return array<string, string>
+     */
+    private function knownFilenames(): array
+    {
+        $knownFilenames = [];
+
+        foreach (Craft::$app->getVolumes()->getAllVolumes() as $volume) {
+            if ($volume->getFs() !== $this && $volume->getFsHandle() !== $this->handle) {
+                continue;
+            }
+
+            $subpath = trim($volume->getSubpath(false), '/');
+
+            $rows = (new Query())
+                ->select(['assets.filename', 'folders.path'])
+                ->from(['assets' => Table::ASSETS])
+                ->innerJoin(['elements' => Table::ELEMENTS], '[[elements.id]] = [[assets.id]]')
+                ->innerJoin(['folders' => Table::VOLUMEFOLDERS], '[[folders.id]] = [[assets.folderId]]')
+                ->where([
+                    'assets.volumeId' => $volume->id,
+                    'elements.dateDeleted' => null,
+                ])
+                ->all();
+
+            foreach ($rows as $row) {
+                $folder = trim($subpath . '/' . trim((string) $row['path'], '/'), '/');
+                $key = FsListings::knownFilenameKey($folder, PublicIds::keyFromPath($row['filename']));
+                $knownFilenames[$key] = $row['filename'];
+            }
+        }
+
+        return $knownFilenames;
     }
 
     /**
@@ -102,6 +144,12 @@ class CloudinaryFs extends FlysystemFs
      */
     public function renameDirectory(string $path, string $newName): void
     {
+        $parent = dirname($path);
+        $newPath = $parent === '.' ? $newName : "{$parent}/{$newName}";
+
+        $this->markChanged(SyncGuard::folderKey($path));
+        $this->markChanged(SyncGuard::folderKey($newPath));
+
         $this->listViaAdapter = true;
 
         try {
@@ -109,6 +157,35 @@ class CloudinaryFs extends FlysystemFs
         } finally {
             $this->listViaAdapter = false;
         }
+    }
+
+    public function renameFile(string $path, string $newPath, $config = []): void
+    {
+        $this->markChanged(PublicIds::keyFromPath($path));
+        $this->markChanged(PublicIds::keyFromPath($newPath));
+
+        parent::renameFile($path, $newPath, $config);
+    }
+
+    public function copyFile(string $path, string $newPath, $config = []): void
+    {
+        $this->markUploaded($newPath);
+
+        parent::copyFile($path, $newPath, $config);
+    }
+
+    public function createDirectory(string $path, array $config = []): void
+    {
+        $this->markChanged(SyncGuard::folderKey($path));
+
+        parent::createDirectory($path, $config);
+    }
+
+    public function deleteDirectory(string $path): void
+    {
+        $this->markChanged(SyncGuard::folderKey($path));
+
+        parent::deleteDirectory($path);
     }
 
     public function write(string $path, string $contents, array $config = []): void
@@ -129,7 +206,15 @@ class CloudinaryFs extends FlysystemFs
     {
         CloudinaryPlugin::getInstance()->syncGuard->markUploaded(
             App::parseEnv($this->cloudName),
-            basename($path),
+            PublicIds::keyFromPath($path),
+        );
+    }
+
+    private function markChanged(string $subject): void
+    {
+        CloudinaryPlugin::getInstance()->syncGuard->markChangedFromCraft(
+            App::parseEnv($this->cloudName),
+            $subject,
         );
     }
 
@@ -140,7 +225,7 @@ class CloudinaryFs extends FlysystemFs
 
     protected function createAdapter(): FilesystemAdapter
     {
-        return new LocalUrlAdapter($this->getClient());
+        return new CloudinaryAdapter($this->getClient());
     }
 
     protected function invalidateCdnPath(string $path): bool

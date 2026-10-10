@@ -19,7 +19,7 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('photos/hero-banner.jpg');
+        expect($key)->toBe('photos/image:hero-banner');
     });
 
     it('builds key for image without folder', function() {
@@ -32,7 +32,7 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('logo.png');
+        expect($key)->toBe('image:logo');
     });
 
     it('builds key for raw resource without format extension', function() {
@@ -45,7 +45,7 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('docs/document.pdf');
+        expect($key)->toBe('docs/image:document');
     });
 
     it('builds key for video with nested folder', function() {
@@ -58,7 +58,7 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('media/videos/intro.mp4');
+        expect($key)->toBe('media/videos/video:intro');
     });
 
     it('strips leading/trailing slashes from folder path', function() {
@@ -71,7 +71,7 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('photos/test.webp');
+        expect($key)->toBe('photos/image:test');
     });
 
     it('uses basename when public_id contains path', function() {
@@ -84,7 +84,55 @@ describe('SyncReconciler resource key building', function() {
 
         $key = $this->method->invoke($this->reconciler, $resource);
 
-        expect($key)->toBe('image.jpg');
+        expect($key)->toBe('image:image');
+    });
+});
+
+describe('SyncReconciler Craft asset keys', function() {
+    beforeEach(function() {
+        $this->reconciler = new SyncReconciler();
+        $this->resourceKey = new ReflectionMethod(SyncReconciler::class, 'buildResourceKey');
+        $this->craftKey = new ReflectionMethod(SyncReconciler::class, 'buildCraftAssetKey');
+    });
+
+    it('matches a .jpeg asset to the jpg format Cloudinary reports', function() {
+        $resource = ['public_id' => 'photo', 'resource_type' => 'image', 'format' => 'jpg', 'asset_folder' => 'photos'];
+        $craftAsset = ['filename' => 'photo.jpeg', 'folderPath' => 'photos/'];
+
+        expect($this->craftKey->invoke($this->reconciler, $craftAsset))
+            ->toBe($this->resourceKey->invoke($this->reconciler, $resource));
+    });
+
+    it('matches root assets', function() {
+        $resource = ['public_id' => 'logo', 'resource_type' => 'image', 'format' => 'png', 'asset_folder' => ''];
+        $craftAsset = ['filename' => 'logo.png', 'folderPath' => ''];
+
+        expect($this->craftKey->invoke($this->reconciler, $craftAsset))
+            ->toBe($this->resourceKey->invoke($this->reconciler, $resource));
+    });
+
+    it('keeps uppercase extensions as raw files', function() {
+        $resource = ['public_id' => 'scan.JPG', 'resource_type' => 'raw', 'asset_folder' => ''];
+        $craftAsset = ['filename' => 'scan.JPG', 'folderPath' => ''];
+
+        expect($this->craftKey->invoke($this->reconciler, $craftAsset))
+            ->toBe($this->resourceKey->invoke($this->reconciler, $resource));
+    });
+
+    it('matches files uploaded to Cloudinary as raw despite an image extension', function() {
+        $resource = ['public_id' => 'document.pdf', 'resource_type' => 'raw', 'format' => 'pdf', 'asset_folder' => ''];
+        $craftAsset = ['filename' => 'document.pdf', 'folderPath' => ''];
+
+        expect($this->craftKey->invoke($this->reconciler, $craftAsset))
+            ->toBe($this->resourceKey->invoke($this->reconciler, $resource));
+    });
+
+    it('does not match assets in another folder', function() {
+        $resource = ['public_id' => 'photo', 'resource_type' => 'image', 'format' => 'jpg', 'asset_folder' => 'a'];
+        $craftAsset = ['filename' => 'photo.jpg', 'folderPath' => 'b/'];
+
+        expect($this->craftKey->invoke($this->reconciler, $craftAsset))
+            ->not->toBe($this->resourceKey->invoke($this->reconciler, $resource));
     });
 });
 

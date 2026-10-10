@@ -5,20 +5,15 @@ namespace Noo\CraftCloudinary;
 use Craft;
 use craft\base\Event;
 use craft\base\Plugin;
-use craft\console\Controller;
 use craft\elements\Asset;
 use craft\events\DefineAssetThumbUrlEvent;
 use craft\events\DefineBehaviorsEvent;
-use craft\events\DefineConsoleActionsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Assets;
 use craft\services\Fs;
 use craft\services\ImageTransforms;
 use craft\services\Utilities;
 use Noo\CraftCloudinary\behaviors\CloudinaryUrlBehavior;
-use Noo\CraftCloudinary\console\controllers\ApiController;
-use Noo\CraftCloudinary\console\controllers\RemovePathsFromPublicIdsController;
-use Noo\CraftCloudinary\console\controllers\SyncController;
 use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\imagetransforms\CloudinaryTransformer;
 use Noo\CraftCloudinary\listeners\AssetEventListener;
@@ -48,7 +43,6 @@ class Cloudinary extends Plugin
             $this->registerFilesystemTypes();
             $this->registerImageTransformers();
             $this->defineBehaviors();
-            $this->registerConsoleCommands();
             $this->defineLogTarget();
             $this->registerThumbnails();
 
@@ -59,57 +53,6 @@ class Cloudinary extends Plugin
                 $this->stripExternalUpdateNotifications();
             }
         });
-    }
-
-    public function registerConsoleCommands(): void
-    {
-        // php craft cloudinary/sync
-        Event::on(
-            SyncController::class,
-            Controller::EVENT_DEFINE_ACTIONS,
-            function(DefineConsoleActionsEvent $event) {
-                $event->actions['index'] = [
-                    'helpSummary' => 'Reconcile all Cloudinary asset volumes via the Search API',
-                    'action' => function() {
-                        /** @var SyncController $controller */
-                        $controller = Craft::$app->controller;
-                        return $controller->actionIndex();
-                    },
-                ];
-            }
-        );
-
-        // php craft cloudinary/api/rate-limits
-        Event::on(
-            ApiController::class,
-            Controller::EVENT_DEFINE_ACTIONS,
-            function(DefineConsoleActionsEvent $event) {
-                $event->actions['rate-limits'] = [
-                    'helpSummary' => 'Show Cloudinary API rate limit status for all volumes',
-                    'action' => function() {
-                        /** @var ApiController $controller */
-                        $controller = Craft::$app->controller;
-                        return $controller->actionRateLimits();
-                    },
-                ];
-            }
-        );
-
-        // php craft cloudinary/remove-paths-from-public-ids/scan 1
-        Event::on(
-            RemovePathsFromPublicIdsController::class,
-            Controller::EVENT_DEFINE_ACTIONS,
-            function(DefineConsoleActionsEvent $event) {
-                $event->actions['remove-paths-from-public-ids'] = [
-                    'helpSummary' => 'Scan all Cloudinary assets and remove paths from their public ids',
-                    'action' => function($params) {
-                        /** @var RemovePathsFromPublicIdsController $controller */
-                        $controller = Craft::$app->controller;
-                        $controller->actionScan($params);
-                    },
-                ];
-            }
-        );
     }
 
     private function stripExternalUpdateNotifications(): void
@@ -187,14 +130,7 @@ class Cloudinary extends Plugin
                 return;
             }
 
-            $event->url = $behavior->getCloudinaryUrl([
-                'width' => $event->width,
-                'height' => $event->height,
-                'crop' => 'fill',
-                'gravity' => 'auto',
-                'fetch_format' => 'auto',
-                'quality' => 'auto',
-            ]);
+            $event->url = $behavior->getCloudinaryThumbUrl($event->width, $event->height);
         });
     }
 

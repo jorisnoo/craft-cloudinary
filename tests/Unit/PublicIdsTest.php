@@ -34,3 +34,27 @@ describe('PublicIds::fromPath', function() {
         expect(PublicIds::fromPath('a/b/c/archive.tar'))->toBe('archive.tar');
     });
 });
+
+describe('PublicIds::keyFromResource', function() {
+    it('keys resources like the Craft assets made from them', function() {
+        expect(PublicIds::keyFromResource(AssetType::IMAGE, 'photo', 'jpg'))->toBe('image:photo');
+        expect(PublicIds::keyFromResource(AssetType::IMAGE, 'photo'))->toBe('image:photo');
+        expect(PublicIds::keyFromResource(AssetType::RAW, 'data.zip'))->toBe('raw:data.zip');
+        expect(PublicIds::keyFromResource(AssetType::RAW, 'document.pdf'))->toBe('image:document');
+    });
+});
+
+describe('PublicIds::key', function() {
+    it('identifies assets by resource type and public ID', function() {
+        expect(PublicIds::key(AssetType::IMAGE, 'photo'))->toBe('image:photo');
+        expect(PublicIds::key(AssetType::RAW, 'legacy/path/data.zip'))->toBe('raw:data.zip');
+    });
+
+    it('gives a path the key of the asset it is stored as', function() {
+        expect(PublicIds::keyFromPath('a/photo.jpeg'))->toBe('image:photo');
+        expect(PublicIds::keyFromPath('a/photo.jpg'))->toBe('image:photo');
+        expect(PublicIds::keyFromPath('clip.mp4'))->toBe('video:clip');
+        expect(PublicIds::keyFromPath('data.zip'))->toBe('raw:data.zip');
+        expect(PublicIds::keyFromPath('scan.JPG'))->toBe('raw:scan.JPG');
+    });
+});

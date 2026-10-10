@@ -9,6 +9,11 @@ class FolderDeleteAction extends BaseCloudinaryAction
      */
     public function delete(?string $folderPath): void
     {
+        if ($this->folderWasChangedFromCraft($folderPath)) {
+            $this->logSkippedCraftChange("folder deletion of '{$folderPath}'");
+            return;
+        }
+
         $relativePath = $this->relativeAssetFolder($folderPath);
 
         if ($relativePath === null) {

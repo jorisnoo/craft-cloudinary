@@ -2,6 +2,8 @@
 
 namespace Noo\CraftCloudinary\actions;
 
+use Craft;
+use craft\elements\Asset;
 use craft\models\VolumeFolder;
 use Noo\CraftCloudinary\Cloudinary;
 
@@ -13,6 +15,11 @@ class FolderRenameAction extends BaseCloudinaryAction
      */
     public function rename(?string $fromPath, ?string $toPath): ?VolumeFolder
     {
+        if ($this->folderWasChangedFromCraft($fromPath) || $this->folderWasChangedFromCraft($toPath)) {
+            $this->logSkippedCraftChange("folder rename of '{$fromPath}'");
+            return null;
+        }
+
         $relativeFromPath = $this->relativeAssetFolder($fromPath);
         $relativeToPath = $this->relativeAssetFolder($toPath);
 
@@ -58,10 +65,15 @@ class FolderRenameAction extends BaseCloudinaryAction
         ]);
 
         if ($existingTargetFolder && $oldFolder) {
-            // If both a "from" and a "to" path already exists,
-            // delete the target and rename the "from" to the new destination (below)
-            $assets->deleteFoldersByIds($existingTargetFolder->id, false);
-        } elseif ($existingTargetFolder) {
+            // Both exist: merge the "from" folder into the target. The
+            // target's assets still exist in Cloudinary, so deleting its
+            // records would lose them along with their relations.
+            $this->mergeFolder($oldFolder, $fromPath, $toPath);
+
+            return $existingTargetFolder;
+        }
+
+        if ($existingTargetFolder) {
             // If only the target already exists but no "from" folder, don't do anything
             return $existingTargetFolder;
         }
@@ -92,6 +104,46 @@ class FolderRenameAction extends BaseCloudinaryAction
 
         // If it doesn't, create it
         return $this->firstOrCreateFolder($toPath);
+    }
+
+    /**
+     * Moves the assets of a folder and its subfolders into the matching
+     * folders below $toPath, then removes the emptied folder records.
+     */
+    protected function mergeFolder(VolumeFolder $oldFolder, string $fromPath, string $toPath): void
+    {
+        $assets = $this->assetsService();
+        $folders = [$oldFolder, ...$assets->getAllDescendantFolders($oldFolder, withParent: false)];
+
+        foreach ($folders as $folder) {
+            $targetPath = $toPath . substr((string) $folder->path, strlen($fromPath));
+            $targetFolder = $this->firstOrCreateFolder($targetPath);
+
+            foreach ($this->assetsInFolder((int) $folder->id) as $asset) {
+                $this->moveAssetRecord($asset, $targetFolder);
+            }
+        }
+
+        // Only empty folder records remain, so no assets are deleted here.
+        $assets->deleteFoldersByIds($oldFolder->id, false);
+    }
+
+    /**
+     * @return Asset[]
+     */
+    protected function assetsInFolder(int $folderId): array
+    {
+        return Asset::find()->folderId($folderId)->status(null)->all();
+    }
+
+    /**
+     * Setting folderId directly only updates the record; Craft won't try to
+     * move the file, which is already in place.
+     */
+    protected function moveAssetRecord(Asset $asset, VolumeFolder $folder): void
+    {
+        $asset->folderId = $folder->id;
+        Craft::$app->getElements()->saveElement($asset);
     }
 
     protected function firstOrCreateFolder(?string $folderPath): VolumeFolder
