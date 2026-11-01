@@ -262,9 +262,31 @@ class CloudinaryAdapter implements FilesystemAdapter, PublicUrlGenerator
             if ($destinationPublicId === $sourcePublicId) {
                 $this->client->adminApi()->update($sourcePublicId, $options);
             } else {
-                $this->client->uploadApi()->rename($sourcePublicId, $destinationPublicId, $options + [
+                $renameOptions = [
+                    'resource_type' => ResourceTypes::fromPath($source),
+                    'invalidate' => true,
                     'overwrite' => false,
-                ]);
+                ];
+                $this->client->uploadApi()->rename($sourcePublicId, $destinationPublicId, $renameOptions);
+
+                // The rename endpoint ignores asset_folder. A combined move
+                // and rename needs a separate Admin API update.
+                if ($this->folder($source) !== $this->folder($destination)) {
+                    try {
+                        $this->client->adminApi()->update($destinationPublicId, $options);
+                    } catch (Throwable $moveError) {
+                        try {
+                            $this->client->uploadApi()->rename($destinationPublicId, $sourcePublicId, $renameOptions);
+                        } catch (Throwable $rollbackError) {
+                            throw new \RuntimeException(
+                                "Folder move failed and public ID rollback failed; reconcile '{$source}' and '{$destination}': " . $rollbackError->getMessage(),
+                                0,
+                                $moveError,
+                            );
+                        }
+                        throw $moveError;
+                    }
+                }
             }
         } catch (Throwable $e) {
             throw UnableToMoveFile::fromLocationTo($source, $destination, $e);

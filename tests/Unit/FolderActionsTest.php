@@ -9,6 +9,25 @@ use Noo\CraftCloudinary\actions\FolderCreateAction;
 use Noo\CraftCloudinary\actions\FolderDeleteAction;
 use Noo\CraftCloudinary\actions\FolderRenameAction;
 
+beforeEach(function() {
+    $this->previousApp = Craft::$app;
+});
+
+afterEach(function() {
+    Craft::$app = $this->previousApp;
+});
+
+function folderMergeDatabase(): \craft\db\Connection
+{
+    $db = new \craft\db\Connection(['dsn' => 'sqlite::memory:']);
+    $db->pdo = new PDO('sqlite::memory:');
+    $app = test()->createMock(\craft\web\Application::class);
+    $app->method('getDb')->willReturn($db);
+    Craft::$app = $app;
+
+    return $db;
+}
+
 class FolderCreateTestAction extends FolderCreateAction
 {
     public function __construct(
@@ -64,6 +83,7 @@ class FolderRenameTestAction extends FolderRenameAction
     public ?string $deletedFolderPath = null;
     public array $assetsByFolderId = [];
     public array $movedAssets = [];
+    public bool $saveRecords = false;
 
     public function __construct(
         int $volumeId,
@@ -99,7 +119,13 @@ class FolderRenameTestAction extends FolderRenameAction
 
     protected function moveAssetRecord(Asset $asset, VolumeFolder $folder): void
     {
+        if ($this->saveRecords) {
+            parent::moveAssetRecord($asset, $folder);
+        }
         $this->movedAssets[] = [$asset, $folder->id];
+        foreach ($this->assetsByFolderId as &$assets) {
+            $assets = array_values(array_filter($assets, static fn(Asset $candidate) => $candidate !== $asset));
+        }
     }
 
     protected function deleteFolder(?string $folderPath): void
@@ -177,6 +203,7 @@ it('deletes folder elements safely without deleting the remote directory', funct
 });
 
 it('merges into an existing target folder instead of deleting its assets', function() {
+    folderMergeDatabase();
     $source = folderActionFolder(10, 'source/', 1);
     $target = folderActionFolder(20, 'archive/source/', 30);
     $descendant = folderActionFolder(11, 'source/child/', 10);
@@ -203,6 +230,42 @@ it('merges into an existing target folder instead of deleting its assets', funct
     expect($result)->toBe($target)
         ->and($action->createdFolderPaths)->toBe(['archive/source/', 'archive/source/child/'])
         ->and($action->movedAssets)->toBe([[$inSource, 30], [$inChild, 30]]);
+});
+
+it('keeps source assets and rolls back earlier moves when a merge save fails', function() {
+    $db = folderMergeDatabase();
+    $db->pdo->exec('CREATE TABLE merge_assets (id INTEGER PRIMARY KEY, folderId INTEGER)');
+    $db->pdo->exec('INSERT INTO merge_assets VALUES (1, 10), (2, 11)');
+    $source = folderActionFolder(10, 'source/', 1);
+    $child = folderActionFolder(11, 'source/child/', 10);
+    $target = folderActionFolder(20, 'target/', 1);
+    $first = $this->createMock(Asset::class);
+    $first->id = 1;
+    $second = $this->createMock(Asset::class);
+    $second->id = 2;
+
+    $elements = $this->createMock(\craft\services\Elements::class);
+    $elements->method('saveElement')->willReturnCallback(function(Asset $asset) use ($db): bool {
+        if ($asset->id === 2) {
+            return false;
+        }
+        $db->pdo->exec("UPDATE merge_assets SET folderId = {$asset->folderId} WHERE id = {$asset->id}");
+        return true;
+    });
+    Craft::$app->method('getElements')->willReturn($elements);
+
+    $assets = $this->createMock(Assets::class);
+    $assets->method('findFolder')->willReturnCallback(fn(array $criteria) => $criteria['path'] === 'target/' ? $target : $source);
+    $assets->method('getAllDescendantFolders')->willReturn([$child]);
+    $assets->expects($this->never())->method('deleteFoldersByIds');
+    $action = new FolderRenameTestAction(7, $assets, $target);
+    $action->saveRecords = true;
+    $action->assetsByFolderId = [10 => [$first], 11 => [$second]];
+
+    expect(fn() => $action->rename('source', 'target'))
+        ->toThrow(RuntimeException::class, 'Unable to move asset 2');
+    expect($db->pdo->query('SELECT folderId FROM merge_assets ORDER BY id')->fetchAll(PDO::FETCH_COLUMN))
+        ->toBe([10, 11]);
 });
 
 it('moves the folder record and rewrites descendant paths', function() {

@@ -113,19 +113,28 @@ class FolderRenameAction extends BaseCloudinaryAction
     protected function mergeFolder(VolumeFolder $oldFolder, string $fromPath, string $toPath): void
     {
         $assets = $this->assetsService();
-        $folders = [$oldFolder, ...$assets->getAllDescendantFolders($oldFolder, withParent: false)];
+        Craft::$app->getDb()->transaction(function() use ($assets, $oldFolder, $fromPath, $toPath) {
+            $folders = [$oldFolder, ...$assets->getAllDescendantFolders($oldFolder, withParent: false)];
 
-        foreach ($folders as $folder) {
-            $targetPath = $toPath . substr((string) $folder->path, strlen($fromPath));
-            $targetFolder = $this->firstOrCreateFolder($targetPath);
+            foreach ($folders as $folder) {
+                $targetPath = $toPath . substr((string) $folder->path, strlen($fromPath));
+                $targetFolder = $this->firstOrCreateFolder($targetPath);
 
-            foreach ($this->assetsInFolder((int) $folder->id) as $asset) {
-                $this->moveAssetRecord($asset, $targetFolder);
+                foreach ($this->assetsInFolder((int) $folder->id) as $asset) {
+                    $this->moveAssetRecord($asset, $targetFolder);
+                }
             }
-        }
 
-        // Only empty folder records remain, so no assets are deleted here.
-        $assets->deleteFoldersByIds($oldFolder->id, false);
+            // deleteFoldersByIds(..., false) still permanently deletes asset
+            // records. Never call it unless every source folder is empty.
+            foreach ($folders as $folder) {
+                if ($this->assetsInFolder((int) $folder->id) !== []) {
+                    throw new \RuntimeException("Folder {$folder->id} is not empty after merging");
+                }
+            }
+
+            $assets->deleteFoldersByIds($oldFolder->id, false);
+        });
     }
 
     /**
@@ -143,7 +152,9 @@ class FolderRenameAction extends BaseCloudinaryAction
     protected function moveAssetRecord(Asset $asset, VolumeFolder $folder): void
     {
         $asset->folderId = $folder->id;
-        Craft::$app->getElements()->saveElement($asset);
+        if (!Craft::$app->getElements()->saveElement($asset)) {
+            throw new \RuntimeException("Unable to move asset {$asset->id} while merging folders: " . json_encode($asset->getErrors()));
+        }
     }
 
     protected function firstOrCreateFolder(?string $folderPath): VolumeFolder
