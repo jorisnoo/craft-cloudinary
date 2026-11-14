@@ -12,6 +12,7 @@ use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\ImageTransforms;
 use Noo\CraftCloudinary\helpers\PublicIds;
 use Noo\CraftCloudinary\helpers\ResourceTypes;
+use yii\base\InvalidConfigException;
 
 class CloudinaryTransformer extends Component implements ImageTransformerInterface
 {
@@ -28,10 +29,13 @@ class CloudinaryTransformer extends Component implements ImageTransformerInterfa
             'fetch_format' => $imageTransform->format ?? 'auto',
         ];
 
-        /**
-         * @var CloudinaryUrlBehavior $asset
-         */
-        return $asset->getCloudinaryUrl($transform);
+        $behavior = $asset->getBehavior('cloudinary:url');
+
+        if (!$behavior instanceof CloudinaryUrlBehavior) {
+            throw new InvalidConfigException("Asset {$asset->id} does not use a Cloudinary filesystem.");
+        }
+
+        return $behavior->getCloudinaryUrl($transform);
     }
 
     public function invalidateAssetTransforms(Asset $asset): void

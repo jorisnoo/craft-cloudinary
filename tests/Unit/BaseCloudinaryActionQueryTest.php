@@ -135,6 +135,14 @@ it('scopes root asset queries to the root folder id', function() {
         ->and($query->requestedFolderId)->toBe(10);
 });
 
+it('escapes query param syntax in public ids', function() {
+    $asset = queryTestAsset('smith,-john*.jpg');
+    [$action, , $query] = queryTestAction(queryTestFolder(10, ''), [$asset]);
+
+    expect($action->queryAsset('smith,-john*', null, AssetType::IMAGE))->toBe($asset)
+        ->and($query->requestedFilename)->toBe('smith\\,-john\\*.*');
+});
+
 it('scopes nested asset queries to the exact nested folder id', function() {
     $asset = queryTestAsset('photo.jpg');
     [$action, $assets, $query] = queryTestAction(queryTestFolder(20, 'gallery/'), [$asset]);

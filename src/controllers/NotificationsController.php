@@ -39,6 +39,11 @@ class NotificationsController extends Controller
         $volumeId = $this->request->getQueryParam('volume');
 
         if ($volumeId) {
+            if (!is_string($volumeId) || !ctype_digit($volumeId)) {
+                throw new BadRequestHttpException('Invalid volume');
+            }
+
+            $volumeId = (int) $volumeId;
             $fs = $this->verifyVolume($volumeId);
             $this->verifyCloudinarySignature($fs);
         } else {
@@ -68,7 +73,7 @@ class NotificationsController extends Controller
         return $this->asSuccess();
     }
 
-    protected function processNotification(string $notificationType, int|string $volumeId): void
+    protected function processNotification(string $notificationType, int $volumeId): void
     {
         Cloudinary::getInstance()->syncGuard->whileProcessingWebhook(function() use ($notificationType, $volumeId) {
             match ($notificationType) {
@@ -172,7 +177,7 @@ class NotificationsController extends Controller
         WebhookLogRecord::deleteAll(['signatureHash' => hash('sha256', $signature)]);
     }
 
-    protected function verifyVolume($volumeId): CloudinaryFs
+    protected function verifyVolume(int $volumeId): CloudinaryFs
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($volumeId);
 

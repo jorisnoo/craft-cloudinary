@@ -7,6 +7,7 @@ use Craft;
 use craft\elements\Asset;
 use craft\elements\db\AssetQuery;
 use craft\helpers\App;
+use craft\helpers\Db;
 use craft\services\Assets;
 use craft\services\Volumes;
 use Noo\CraftCloudinary\Cloudinary;
@@ -149,7 +150,9 @@ abstract class BaseCloudinaryAction
             return [];
         }
 
-        $filename = $this->formatFilename($publicId, $resourceType);
+        // Commas and asterisks in a public ID would otherwise be read as
+        // query param syntax, and the asset would never be found.
+        $filename = Db::escapeParam($this->formatFilename($publicId, $resourceType));
 
         if ($resourceType !== AssetType::RAW) {
             $filename .= '.*';

@@ -23,7 +23,7 @@ class SyncVolume extends BaseJob
     public function getDescription(): string
     {
         $volume = Craft::$app->getVolumes()->getVolumeById($this->volumeId);
-        $name = $volume?->name ?? "#{$this->volumeId}";
+        $name = $volume->name ?? "#{$this->volumeId}";
         $suffix = $this->force ? ' [forced]' : '';
 
         return "Syncing Cloudinary volume \"{$name}\"{$suffix}";

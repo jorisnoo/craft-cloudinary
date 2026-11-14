@@ -155,42 +155,4 @@ class Cloudinary extends Plugin
             default => Craft::info($message, 'cloudinary'),
         };
     }
-
-    public static function maskSensitiveData(string $data, int $visibleChars = 4): string
-    {
-        if (strlen($data) <= $visibleChars) {
-            return str_repeat('*', strlen($data));
-        }
-
-        return substr($data, 0, $visibleChars) . str_repeat('*', min(8, strlen($data) - $visibleChars));
-    }
-
-    public static function sanitizeParams(array $params): array
-    {
-        $exactKeys = ['key', 'secret', 'token', 'password', 'authorization', 'cookie'];
-
-        $compoundKeys = [
-            'signature',
-            'api_key',
-            'api_secret',
-            'access_token',
-            'x-api-key',
-            'set-cookie',
-        ];
-
-        $sanitized = $params;
-
-        foreach ($params as $key => $value) {
-            $lowerKey = strtolower($key);
-
-            $isExact = in_array($lowerKey, $exactKeys, true);
-            $isCompound = !$isExact && array_filter($compoundKeys, fn($k) => str_contains($lowerKey, $k));
-
-            if ($isExact || $isCompound) {
-                $sanitized[$key] = self::maskSensitiveData((string) $value);
-            }
-        }
-
-        return $sanitized;
-    }
 }
