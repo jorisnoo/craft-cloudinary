@@ -57,7 +57,11 @@ class FsListings
             }
 
             if ($recursive || $relativeFolder === '') {
-                yield self::fileListing($resource, $folder, $knownFilenames);
+                $listing = self::fileListing($resource, $folder, $knownFilenames);
+
+                if ($listing !== null) {
+                    yield $listing;
+                }
             }
         }
     }
@@ -71,7 +75,12 @@ class FsListings
         return trim($folder, '/') . '|' . $assetKey;
     }
 
-    private static function fileListing(array $resource, string $folder, array $knownFilenames): FsListing
+    /**
+     * Returns null for a resource whose public ID contains a path, unless
+     * Craft already has it: Craft can't address it, so indexing it would
+     * create an asset with broken URLs. See PublicIds::hasPath().
+     */
+    private static function fileListing(array $resource, string $folder, array $knownFilenames): ?FsListing
     {
         $knownFilename = $knownFilenames[self::knownFilenameKey(
             $folder,
@@ -80,6 +89,8 @@ class FsListings
 
         if ($knownFilename !== null) {
             $filename = $knownFilename;
+        } elseif (PublicIds::hasPath($resource['public_id'])) {
+            return null;
         } else {
             $filename = basename($resource['public_id']);
             $format = $resource['format'] ?? null;

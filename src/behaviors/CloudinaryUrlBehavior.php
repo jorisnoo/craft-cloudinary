@@ -111,7 +111,8 @@ class CloudinaryUrlBehavior extends Behavior
             $resource->deliveryType("fetch");
         }
 
-        if ($transform !== null) {
+        // Raw files can't be transformed, e.g. a `.JPG` stored as raw.
+        if ($transform !== null && $resourceType !== AssetType::RAW) {
             $resource->addTransformation($transform);
 
             if (isset($transform['format'])) {

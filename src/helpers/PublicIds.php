@@ -23,6 +23,15 @@ class PublicIds
     }
 
     /**
+     * Whether a public ID contains a path. Craft can't address such assets in
+     * dynamic folders mode, see `cloudinary/remove-paths-from-public-ids`.
+     */
+    public static function hasPath(string $publicId): bool
+    {
+        return $publicId !== basename($publicId);
+    }
+
+    /**
      * Identifies a Cloudinary asset by resource type and public ID.
      *
      * Craft filenames can't be rebuilt from a Cloudinary resource: Cloudinary

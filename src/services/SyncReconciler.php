@@ -153,6 +153,18 @@ class SyncReconciler extends Component
                 continue;
             }
 
+            // In dynamic folders mode, files are addressed by the basename of
+            // their path, so Craft can't reach an asset whose public ID
+            // contains a path (such as Cloudinary's `samples/*` assets) and
+            // its URLs would 404. Existing Craft assets still match above.
+            if (PublicIds::hasPath($resource['public_id'])) {
+                Cloudinary::log(sprintf(
+                    "Reconciler: skipped Cloudinary asset '%s' because its public ID contains a path - run cloudinary/remove-paths-from-public-ids/scan to make it available in Craft",
+                    $resource['public_id'],
+                ), 'warning');
+                continue;
+            }
+
             if (!$dryRun) {
                 $this->createCraftAsset($volumeId, $resource);
             }

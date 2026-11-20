@@ -155,6 +155,17 @@ it('uses the resource type the file was uploaded as, not its MIME type', functio
     expect($behavior->getCloudinaryUrl())->toBe('https://res.cloudinary.com/demo/raw/upload/intro.mpg');
 });
 
+it('ignores transforms for raw files', function() {
+    $cloudinaryFs = urlBehaviorCloudinaryFs();
+    // Uppercase extensions were always uploaded as raw.
+    $asset = urlBehaviorAsset($cloudinaryFs, $cloudinaryFs, null, 'photos/scan.JPG');
+    $behavior = new CloudinaryUrlBehavior();
+    $behavior->owner = $asset;
+
+    expect($behavior->getCloudinaryUrl(['width' => 100, 'crop' => 'fill', 'format' => 'webp']))
+        ->toBe('https://res.cloudinary.com/demo/raw/upload/scan.JPG');
+});
+
 it('keeps MIME-based resource types for fetch delivery', function() {
     $sourceFs = $this->createMock(FsInterface::class);
     $asset = urlBehaviorAsset($sourceFs, urlBehaviorCloudinaryFs(), 'https://example.com/a.JPG', 'a.JPG');

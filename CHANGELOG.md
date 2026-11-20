@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file.
 - Webhook requests without signature headers are rejected with a 400 response instead of failing with a 500.
 - Webhook requests with a non-numeric `volume` parameter are rejected with a 400 response instead of failing with a 500.
 - Removed console command registration code that never ran. The `cloudinary/sync`, `cloudinary/api/rate-limits` and `cloudinary/remove-paths-from-public-ids/scan` commands are unchanged.
+- Requesting a transform for a file stored in Cloudinary as raw, such as a `.JPG` (uppercase extensions have always been uploaded as raw), returns the file's URL instead of throwing an error. Previously such a file broke any control panel listing that showed its thumbnail.
+- `cloudinary/sync` and the Asset Indexes utility no longer create Craft assets for Cloudinary assets whose public ID contains a path, such as Cloudinary's `samples/*` assets. Craft can't address them, so their URLs returned 404 and they came back after being deleted. They are logged as warnings instead; run `cloudinary/remove-paths-from-public-ids/scan` to make them available. Existing Craft assets for such public IDs are kept.
 - The README now describes the log file (`storage/logs/cloudinary.log`, rotated at 10MB) accurately and no longer claims that sensitive data is masked.
 
 ## [2.2.1](https://github.com/jorisnoo/craft-cloudinary/releases/tag/2.2.1) (2026-07-17)

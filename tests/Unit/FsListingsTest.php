@@ -72,13 +72,25 @@ describe('FsListings::fromResources', function() {
         expect($listings[0]->getUri())->toBe('document.pdf');
     });
 
-    it('uses the basename when the public_id contains a path', function() {
+    it('skips new files whose public_id contains a path', function() {
+        $resources = [makeResource([
+            'public_id' => 'samples/canvas',
+            'asset_folder' => '',
+        ])];
+
+        $listings = iterator_to_array(FsListings::fromResources($resources, '', true), false);
+
+        expect($listings)->toBe([]);
+    });
+
+    it('keeps listing files whose public_id contains a path when Craft has them', function() {
         $resources = [makeResource([
             'public_id' => 'legacy/path/image',
             'asset_folder' => 'photos',
         ])];
+        $known = [FsListings::knownFilenameKey('photos', 'image:image') => 'image.jpg'];
 
-        $listings = iterator_to_array(FsListings::fromResources($resources, '', true), false);
+        $listings = iterator_to_array(FsListings::fromResources($resources, '', true, $known), false);
         $files = array_values(array_filter($listings, fn($l) => !$l->getIsDir()));
 
         expect($files[0]->getUri())->toBe('photos/image.jpg');
