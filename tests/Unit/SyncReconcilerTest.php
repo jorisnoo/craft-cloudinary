@@ -291,6 +291,23 @@ describe('SyncReconciler metadata change detection', function() {
         expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeFalse();
     });
 
+    it('detects raw images without dimensions', function() {
+        $craft = ['filename' => 'scan.JPG', 'size' => '1024', 'width' => null, 'height' => null];
+        $cloudinary = ['resource_type' => 'raw', 'bytes' => 1024];
+
+        expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeTrue();
+    });
+
+    it('ignores raw files without readable dimensions', function() {
+        $cloudinary = ['resource_type' => 'raw', 'bytes' => 1024];
+
+        foreach (['logo.SVG', 'data.zip'] as $filename) {
+            $craft = ['filename' => $filename, 'size' => '1024', 'width' => null, 'height' => null];
+
+            expect($this->method->invoke($this->reconciler, $craft, $cloudinary))->toBeFalse();
+        }
+    });
+
     it('handles null cloudinary values', function() {
         $craft = ['size' => '1024', 'width' => '800', 'height' => '600'];
         $cloudinary = [];

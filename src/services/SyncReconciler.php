@@ -14,6 +14,7 @@ use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\AssetFolders;
 use Noo\CraftCloudinary\helpers\CloudinaryAssetSearch;
 use Noo\CraftCloudinary\helpers\PublicIds;
+use Noo\CraftCloudinary\helpers\RawImageDimensions;
 use yii\base\Component;
 
 class SyncReconciler extends Component
@@ -143,7 +144,7 @@ class SyncReconciler extends Component
                 foreach ($craftIndex[$key] as $craftAsset) {
                     if ($this->hasMetadataChanged($craftAsset, $resource)) {
                         if (!$dryRun) {
-                            $this->updateCraftAsset($craftAsset, $resource);
+                            $this->updateCraftAsset($client, $craftAsset, $resource);
                         }
                         $stats['updated']++;
                     } else {
@@ -166,7 +167,7 @@ class SyncReconciler extends Component
             }
 
             if (!$dryRun) {
-                $this->createCraftAsset($volumeId, $resource);
+                $this->createCraftAsset($client, $volumeId, $resource);
             }
             $stats['created']++;
         }
@@ -295,6 +296,10 @@ class SyncReconciler extends Component
             return true;
         }
 
+        if ($this->isMissingRawImageDimensions($craftAsset, $cloudinaryResource)) {
+            return true;
+        }
+
         if (($cloudinaryResource['resource_type'] ?? '') === 'image') {
             $cloudinaryWidth = $cloudinaryResource['width'] ?? null;
             $cloudinaryHeight = $cloudinaryResource['height'] ?? null;
@@ -311,7 +316,26 @@ class SyncReconciler extends Component
         return false;
     }
 
-    private function updateCraftAsset(array $craftAsset, array $cloudinaryResource): void
+    /**
+     * Cloudinary doesn't report dimensions for raw files, so a raw image
+     * without dimensions in Craft gets them read from the file.
+     */
+    private function isMissingRawImageDimensions(array $craftAsset, array $cloudinaryResource): bool
+    {
+        return ($cloudinaryResource['resource_type'] ?? '') === 'raw'
+            && RawImageDimensions::isReadable($craftAsset['filename'] ?? '')
+            && (empty($craftAsset['width']) || empty($craftAsset['height']));
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private function fetchRawImageDimensions($client, array $resource): ?array
+    {
+        return RawImageDimensions::fetch((string) $client->raw($resource['public_id'])->toUrl());
+    }
+
+    private function updateCraftAsset($client, array $craftAsset, array $cloudinaryResource): void
     {
         $asset = Asset::find()->id($craftAsset['id'])->one();
 
@@ -333,11 +357,15 @@ class SyncReconciler extends Component
             }
         }
 
+        if ($this->isMissingRawImageDimensions($craftAsset, $cloudinaryResource)) {
+            [$asset->width, $asset->height] = $this->fetchRawImageDimensions($client, $cloudinaryResource) ?? [null, null];
+        }
+
         $asset->setScenario(Asset::SCENARIO_INDEX);
         Craft::$app->getElements()->saveElement($asset);
     }
 
-    private function createCraftAsset(int $volumeId, array $resource): void
+    private function createCraftAsset($client, int $volumeId, array $resource): void
     {
         $publicId = $resource['public_id'];
         $resourceType = $resource['resource_type'];
@@ -368,6 +396,10 @@ class SyncReconciler extends Component
         if ($kind === Asset::KIND_IMAGE) {
             $asset->width = $resource['width'] ?? null;
             $asset->height = $resource['height'] ?? null;
+        }
+
+        if ($resourceType === 'raw' && RawImageDimensions::isReadable($filename)) {
+            [$asset->width, $asset->height] = $this->fetchRawImageDimensions($client, $resource) ?? [null, null];
         }
 
         $asset->setScenario(Asset::SCENARIO_INDEX);

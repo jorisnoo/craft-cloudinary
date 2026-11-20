@@ -2,11 +2,14 @@
 
 namespace Noo\CraftCloudinary\actions;
 
+use Cloudinary\Asset\AssetType;
 use Craft;
 use craft\elements\Asset;
 use craft\helpers\Assets;
 use Noo\CraftCloudinary\Cloudinary;
+use Noo\CraftCloudinary\fs\CloudinaryFs;
 use Noo\CraftCloudinary\helpers\PublicIds;
+use Noo\CraftCloudinary\helpers\RawImageDimensions;
 
 class AssetUploadAction extends BaseCloudinaryAction
 {
@@ -39,6 +42,10 @@ class AssetUploadAction extends BaseCloudinaryAction
         $this->removePathFromPublicId($publicId, $resourceType);
 
         $folder = (new FolderCreateAction($this->volumeId))->firstOrCreate($relativeFolder);
+
+        if ($resourceType === AssetType::RAW && $width === null && RawImageDimensions::isReadable($filename)) {
+            [$width, $height] = $this->rawImageDimensions($publicId) ?? [null, null];
+        }
 
         $existingAssets = $this->queryAssets($publicId, $relativeFolder, $resourceType);
 
@@ -75,6 +82,20 @@ class AssetUploadAction extends BaseCloudinaryAction
         if (!$saved) {
             Cloudinary::log("Asset upload failed - Public ID: {$publicId}, Errors: " . json_encode($asset->getErrors()), 'error');
         }
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private function rawImageDimensions(string $publicId): ?array
+    {
+        $fs = $this->volumesService()->getVolumeById($this->volumeId)?->getFs();
+
+        if (!$fs instanceof CloudinaryFs) {
+            return null;
+        }
+
+        return RawImageDimensions::fetch((string) $fs->getClient()->raw($publicId)->toUrl());
     }
 
     protected function updateMetadata(Asset $asset, int $size, ?int $width, ?int $height): void
